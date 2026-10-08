@@ -1,0 +1,1146 @@
+{
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5108.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 352.0144,
+      "face_tenengrad": 42.0694,
+      "subject_sharpness": 173.7787,
+      "local_contrast": 49.6868,
+      "motion_blur_metric": 0.2696,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.9584
+    },
+    "global_features": {
+      "global_sharpness": 46.3654,
+      "global_contrast": 42.7397,
+      "mean_luminance": 173.7294,
+      "highlight_clipping_ratio": 0.0001,
+      "shadow_underexposure_ratio": 0.0014,
+      "dof_separation_ratio": 15.9921,
+      "global_context_score": 59.9333
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5109.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 335.5525,
+      "face_tenengrad": 39.9249,
+      "subject_sharpness": 157.2896,
+      "local_contrast": 48.2516,
+      "motion_blur_metric": 0.2976,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.1785
+    },
+    "global_features": {
+      "global_sharpness": 50.0004,
+      "global_contrast": 42.2563,
+      "mean_luminance": 176.6731,
+      "highlight_clipping_ratio": 0.0004,
+      "shadow_underexposure_ratio": 0.0014,
+      "dof_separation_ratio": 10.8784,
+      "global_context_score": 60.0129
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5110.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 383.5625,
+      "face_tenengrad": 44.8486,
+      "subject_sharpness": 227.5106,
+      "local_contrast": 54.241,
+      "motion_blur_metric": 0.2593,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 66.7541
+    },
+    "global_features": {
+      "global_sharpness": 85.6047,
+      "global_contrast": 41.6697,
+      "mean_luminance": 176.0548,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0015,
+      "dof_separation_ratio": 10.8711,
+      "global_context_score": 62.3086
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5116.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 273.0569,
+      "face_tenengrad": 28.063,
+      "subject_sharpness": 138.8659,
+      "local_contrast": 47.9652,
+      "motion_blur_metric": 0.3178,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 62.155
+    },
+    "global_features": {
+      "global_sharpness": 67.5828,
+      "global_contrast": 41.7307,
+      "mean_luminance": 178.7626,
+      "highlight_clipping_ratio": 0.0001,
+      "shadow_underexposure_ratio": 0.0035,
+      "dof_separation_ratio": 34.8113,
+      "global_context_score": 61.1786
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5118.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 523.4759,
+      "face_tenengrad": 48.4748,
+      "subject_sharpness": 257.7209,
+      "local_contrast": 49.2053,
+      "motion_blur_metric": 0.2719,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 69.5346
+    },
+    "global_features": {
+      "global_sharpness": 125.7262,
+      "global_contrast": 38.8352,
+      "mean_luminance": 183.7283,
+      "highlight_clipping_ratio": 0.0004,
+      "shadow_underexposure_ratio": 0.0045,
+      "dof_separation_ratio": 67.4329,
+      "global_context_score": 62.5113
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5147.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 149.7185,
+      "face_tenengrad": 11.3773,
+      "subject_sharpness": 82.0594,
+      "local_contrast": 54.4874,
+      "motion_blur_metric": 0.3418,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 55.557
+    },
+    "global_features": {
+      "global_sharpness": 61.223,
+      "global_contrast": 50.3389,
+      "mean_luminance": 186.583,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0025,
+      "dof_separation_ratio": 13.5087,
+      "global_context_score": 65.857
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5148.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 171.0338,
+      "face_tenengrad": 14.3527,
+      "subject_sharpness": 97.6588,
+      "local_contrast": 55.501,
+      "motion_blur_metric": 0.3409,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 57.2667
+    },
+    "global_features": {
+      "global_sharpness": 71.5372,
+      "global_contrast": 50.7753,
+      "mean_luminance": 187.3182,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0034,
+      "dof_separation_ratio": 13.8026,
+      "global_context_score": 66.8857
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5162.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 309.2603,
+      "face_tenengrad": 22.5286,
+      "subject_sharpness": 185.0424,
+      "local_contrast": 61.2875,
+      "motion_blur_metric": 0.3007,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.3037
+    },
+    "global_features": {
+      "global_sharpness": 90.2638,
+      "global_contrast": 60.4476,
+      "mean_luminance": 172.1483,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0062,
+      "dof_separation_ratio": 3.5962,
+      "global_context_score": 69.2223
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_01\\DSC_5165.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 362.4226,
+      "face_tenengrad": 25.1106,
+      "subject_sharpness": 215.6671,
+      "local_contrast": 63.2052,
+      "motion_blur_metric": 0.2842,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 66.1129
+    },
+    "global_features": {
+      "global_sharpness": 120.1591,
+      "global_contrast": 61.6439,
+      "mean_luminance": 174.2696,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0054,
+      "dof_separation_ratio": 2.9604,
+      "global_context_score": 68.8133
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5073.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 526.5153,
+      "face_tenengrad": 49.931,
+      "subject_sharpness": 237.4019,
+      "local_contrast": 67.6516,
+      "motion_blur_metric": 0.2388,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 69.2163
+    },
+    "global_features": {
+      "global_sharpness": 113.0974,
+      "global_contrast": 65.1501,
+      "mean_luminance": 148.3551,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0068,
+      "dof_separation_ratio": 3.4512,
+      "global_context_score": 72.5799
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5074.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 415.9656,
+      "face_tenengrad": 39.527,
+      "subject_sharpness": 147.5983,
+      "local_contrast": 62.4654,
+      "motion_blur_metric": 0.2711,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 65.4431
+    },
+    "global_features": {
+      "global_sharpness": 91.1073,
+      "global_contrast": 61.4238,
+      "mean_luminance": 156.022,
+      "highlight_clipping_ratio": 0.0003,
+      "shadow_underexposure_ratio": 0.0049,
+      "dof_separation_ratio": 8.4552,
+      "global_context_score": 74.4691
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5076.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 360.1101,
+      "face_tenengrad": 32.4793,
+      "subject_sharpness": 161.2917,
+      "local_contrast": 60.8779,
+      "motion_blur_metric": 0.257,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.7955
+    },
+    "global_features": {
+      "global_sharpness": 123.4779,
+      "global_contrast": 61.0921,
+      "mean_luminance": 155.3002,
+      "highlight_clipping_ratio": 0.0002,
+      "shadow_underexposure_ratio": 0.0091,
+      "dof_separation_ratio": 10.547,
+      "global_context_score": 75.7759
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5079.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 403.7969,
+      "face_tenengrad": 39.4485,
+      "subject_sharpness": 267.5498,
+      "local_contrast": 75.5112,
+      "motion_blur_metric": 0.2322,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 67.8337
+    },
+    "global_features": {
+      "global_sharpness": 220.8656,
+      "global_contrast": 64.0162,
+      "mean_luminance": 174.0236,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0075,
+      "dof_separation_ratio": 1.5867,
+      "global_context_score": 67.7668
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5080.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 359.2125,
+      "face_tenengrad": 28.8191,
+      "subject_sharpness": 235.1352,
+      "local_contrast": 72.1746,
+      "motion_blur_metric": 0.228,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 66.4276
+    },
+    "global_features": {
+      "global_sharpness": 176.7685,
+      "global_contrast": 66.1968,
+      "mean_luminance": 183.8924,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0093,
+      "dof_separation_ratio": 13.1899,
+      "global_context_score": 80.6205
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5081.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 259.0247,
+      "face_tenengrad": 23.6235,
+      "subject_sharpness": 135.1097,
+      "local_contrast": 55.0122,
+      "motion_blur_metric": 0.2831,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 61.6568
+    },
+    "global_features": {
+      "global_sharpness": 83.836,
+      "global_contrast": 46.1301,
+      "mean_luminance": 189.3796,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0029,
+      "dof_separation_ratio": 21.28,
+      "global_context_score": 64.8817
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5084.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 636.5445,
+      "face_tenengrad": 56.4156,
+      "subject_sharpness": 626.3863,
+      "local_contrast": 67.2442,
+      "motion_blur_metric": 0.208,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 74.8378
+    },
+    "global_features": {
+      "global_sharpness": 393.6575,
+      "global_contrast": 57.2568,
+      "mean_luminance": 190.6484,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0026,
+      "dof_separation_ratio": 1.9774,
+      "global_context_score": 68.1539
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5092.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 168.9361,
+      "face_tenengrad": 4.7471,
+      "subject_sharpness": 78.7981,
+      "local_contrast": 48.2033,
+      "motion_blur_metric": 0.572,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 50.1455
+    },
+    "global_features": {
+      "global_sharpness": 39.5244,
+      "global_contrast": 42.6654,
+      "mean_luminance": 195.1405,
+      "highlight_clipping_ratio": 0.0017,
+      "shadow_underexposure_ratio": 0.0013,
+      "dof_separation_ratio": 1.5228,
+      "global_context_score": 46.2001
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5094.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 168.2376,
+      "face_tenengrad": 5.7437,
+      "subject_sharpness": 77.2883,
+      "local_contrast": 57.5818,
+      "motion_blur_metric": 0.4783,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 54.718
+    },
+    "global_features": {
+      "global_sharpness": 42.797,
+      "global_contrast": 52.0681,
+      "mean_luminance": 167.2216,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0039,
+      "dof_separation_ratio": 1.1307,
+      "global_context_score": 50.6615
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5100.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 243.1571,
+      "face_tenengrad": 25.0825,
+      "subject_sharpness": 144.9098,
+      "local_contrast": 69.2196,
+      "motion_blur_metric": 0.232,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 61.5094
+    },
+    "global_features": {
+      "global_sharpness": 118.439,
+      "global_contrast": 74.3371,
+      "mean_luminance": 156.4149,
+      "highlight_clipping_ratio": 0.1286,
+      "shadow_underexposure_ratio": 0.011,
+      "dof_separation_ratio": 3.1379,
+      "global_context_score": 75.1257
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5123.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 318.1702,
+      "face_tenengrad": 40.8363,
+      "subject_sharpness": 143.0824,
+      "local_contrast": 48.8658,
+      "motion_blur_metric": 0.2692,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 63.3829
+    },
+    "global_features": {
+      "global_sharpness": 62.6867,
+      "global_contrast": 39.2339,
+      "mean_luminance": 185.0343,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0019,
+      "dof_separation_ratio": 8.4757,
+      "global_context_score": 59.3102
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5125.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 408.377,
+      "face_tenengrad": 40.8148,
+      "subject_sharpness": 182.3271,
+      "local_contrast": 51.397,
+      "motion_blur_metric": 0.28,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 66.235
+    },
+    "global_features": {
+      "global_sharpness": 86.8122,
+      "global_contrast": 43.2791,
+      "mean_luminance": 176.9567,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.004,
+      "dof_separation_ratio": 46.2419,
+      "global_context_score": 63.3434
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5126.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 249.1436,
+      "face_tenengrad": 23.8238,
+      "subject_sharpness": 136.4911,
+      "local_contrast": 52.7713,
+      "motion_blur_metric": 0.2617,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 61.4223
+    },
+    "global_features": {
+      "global_sharpness": 117.5814,
+      "global_contrast": 49.5494,
+      "mean_luminance": 176.9329,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0088,
+      "dof_separation_ratio": 41.5373,
+      "global_context_score": 68.6077
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5132.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 156.3322,
+      "face_tenengrad": 16.8806,
+      "subject_sharpness": 158.2605,
+      "local_contrast": 51.311,
+      "motion_blur_metric": 0.2973,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 58.7306
+    },
+    "global_features": {
+      "global_sharpness": 78.7057,
+      "global_contrast": 68.5043,
+      "mean_luminance": 145.0095,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.01,
+      "dof_separation_ratio": 2.9756,
+      "global_context_score": 70.8968
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5136.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 129.0225,
+      "face_tenengrad": 11.7497,
+      "subject_sharpness": 68.9584,
+      "local_contrast": 52.7074,
+      "motion_blur_metric": 0.3355,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 53.7383
+    },
+    "global_features": {
+      "global_sharpness": 49.714,
+      "global_contrast": 71.5363,
+      "mean_luminance": 148.8595,
+      "highlight_clipping_ratio": 0.0001,
+      "shadow_underexposure_ratio": 0.05,
+      "dof_separation_ratio": 9.2005,
+      "global_context_score": 77.5528
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5141.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 207.439,
+      "face_tenengrad": 20.4065,
+      "subject_sharpness": 105.4115,
+      "local_contrast": 52.3192,
+      "motion_blur_metric": 0.3134,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 58.9816
+    },
+    "global_features": {
+      "global_sharpness": 57.8305,
+      "global_contrast": 39.3411,
+      "mean_luminance": 188.1527,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0017,
+      "dof_separation_ratio": 8.3294,
+      "global_context_score": 58.978
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5145.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 301.0969,
+      "face_tenengrad": 30.8044,
+      "subject_sharpness": 119.6224,
+      "local_contrast": 54.3351,
+      "motion_blur_metric": 0.3158,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 62.2051
+    },
+    "global_features": {
+      "global_sharpness": 78.5219,
+      "global_contrast": 48.1154,
+      "mean_luminance": 184.0767,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0031,
+      "dof_separation_ratio": 19.9865,
+      "global_context_score": 65.7494
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5150.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 100.0481,
+      "face_tenengrad": 12.702,
+      "subject_sharpness": 168.6483,
+      "local_contrast": 63.784,
+      "motion_blur_metric": 0.2383,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 55.8207
+    },
+    "global_features": {
+      "global_sharpness": 138.5896,
+      "global_contrast": 59.0508,
+      "mean_luminance": 107.4355,
+      "highlight_clipping_ratio": 0.0001,
+      "shadow_underexposure_ratio": 0.0125,
+      "dof_separation_ratio": 1.1462,
+      "global_context_score": 60.7089
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5155.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 186.819,
+      "face_tenengrad": 17.674,
+      "subject_sharpness": 83.0709,
+      "local_contrast": 67.7179,
+      "motion_blur_metric": 0.3189,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 57.1948
+    },
+    "global_features": {
+      "global_sharpness": 57.9068,
+      "global_contrast": 62.5187,
+      "mean_luminance": 137.4452,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0055,
+      "dof_separation_ratio": 2.6029,
+      "global_context_score": 64.3025
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5156.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 308.3554,
+      "face_tenengrad": 28.4911,
+      "subject_sharpness": 196.6955,
+      "local_contrast": 61.4214,
+      "motion_blur_metric": 0.2602,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.5499
+    },
+    "global_features": {
+      "global_sharpness": 131.0196,
+      "global_contrast": 59.9971,
+      "mean_luminance": 135.3766,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.01,
+      "dof_separation_ratio": 1.7543,
+      "global_context_score": 63.43
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5158.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 146.457,
+      "face_tenengrad": 13.1979,
+      "subject_sharpness": 76.0637,
+      "local_contrast": 66.6984,
+      "motion_blur_metric": 0.323,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 55.0698
+    },
+    "global_features": {
+      "global_sharpness": 61.4353,
+      "global_contrast": 62.6896,
+      "mean_luminance": 129.3995,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0073,
+      "dof_separation_ratio": 1.8544,
+      "global_context_score": 61.7021
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5166.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 393.1224,
+      "face_tenengrad": 29.3387,
+      "subject_sharpness": 166.1281,
+      "local_contrast": 41.1328,
+      "motion_blur_metric": 0.2809,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 65.5545
+    },
+    "global_features": {
+      "global_sharpness": 92.1168,
+      "global_contrast": 57.9164,
+      "mean_luminance": 172.0398,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0109,
+      "dof_separation_ratio": 1.715,
+      "global_context_score": 60.279
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5169.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 369.8827,
+      "face_tenengrad": 40.7686,
+      "subject_sharpness": 161.5879,
+      "local_contrast": 46.7263,
+      "motion_blur_metric": 0.269,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.9957
+    },
+    "global_features": {
+      "global_sharpness": 217.541,
+      "global_contrast": 51.4505,
+      "mean_luminance": 160.5926,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0036,
+      "dof_separation_ratio": 0.4641,
+      "global_context_score": 57.8052
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5172.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 222.9802,
+      "face_tenengrad": 14.7376,
+      "subject_sharpness": 91.8555,
+      "local_contrast": 44.5501,
+      "motion_blur_metric": 0.35,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 58.8998
+    },
+    "global_features": {
+      "global_sharpness": 61.3094,
+      "global_contrast": 58.7379,
+      "mean_luminance": 160.8234,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0049,
+      "dof_separation_ratio": 1.2838,
+      "global_context_score": 57.0385
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5180.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 172.1741,
+      "face_tenengrad": 15.0753,
+      "subject_sharpness": 87.25,
+      "local_contrast": 58.9136,
+      "motion_blur_metric": 0.3158,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 56.8237
+    },
+    "global_features": {
+      "global_sharpness": 60.3167,
+      "global_contrast": 58.5493,
+      "mean_luminance": 144.1425,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0036,
+      "dof_separation_ratio": 2.5462,
+      "global_context_score": 61.8946
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5182.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 153.1799,
+      "face_tenengrad": 10.8704,
+      "subject_sharpness": 68.5769,
+      "local_contrast": 57.2858,
+      "motion_blur_metric": 0.3318,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 54.9412
+    },
+    "global_features": {
+      "global_sharpness": 52.0713,
+      "global_contrast": 58.5556,
+      "mean_luminance": 172.6289,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0044,
+      "dof_separation_ratio": 3.8531,
+      "global_context_score": 66.4041
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5183.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 182.3134,
+      "face_tenengrad": 22.4338,
+      "subject_sharpness": 98.3705,
+      "local_contrast": 55.9966,
+      "motion_blur_metric": 0.2783,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 57.7556
+    },
+    "global_features": {
+      "global_sharpness": 37.0224,
+      "global_contrast": 80.1487,
+      "mean_luminance": 136.4456,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0529,
+      "dof_separation_ratio": 7.148,
+      "global_context_score": 81.2801
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5186.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 275.3204,
+      "face_tenengrad": 31.5983,
+      "subject_sharpness": 238.5772,
+      "local_contrast": 52.7271,
+      "motion_blur_metric": 0.2329,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 64.5823
+    },
+    "global_features": {
+      "global_sharpness": 62.3492,
+      "global_contrast": 73.6773,
+      "mean_luminance": 91.713,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.142,
+      "dof_separation_ratio": 6.3168,
+      "global_context_score": 77.4715
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5191.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 244.9288,
+      "face_tenengrad": 33.1757,
+      "subject_sharpness": 213.3416,
+      "local_contrast": 65.1242,
+      "motion_blur_metric": 0.2303,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 63.2536
+    },
+    "global_features": {
+      "global_sharpness": 150.0291,
+      "global_contrast": 74.0707,
+      "mean_luminance": 119.3252,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0148,
+      "dof_separation_ratio": 1.8891,
+      "global_context_score": 73.0861
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5196.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 181.6081,
+      "face_tenengrad": 18.7544,
+      "subject_sharpness": 95.5277,
+      "local_contrast": 58.137,
+      "motion_blur_metric": 0.2734,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 57.6001
+    },
+    "global_features": {
+      "global_sharpness": 83.3949,
+      "global_contrast": 63.0308,
+      "mean_luminance": 101.2015,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0082,
+      "dof_separation_ratio": 1.0618,
+      "global_context_score": 60.2433
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5199.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 476.189,
+      "face_tenengrad": 61.9524,
+      "subject_sharpness": 260.3857,
+      "local_contrast": 54.8205,
+      "motion_blur_metric": 0.2109,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 68.8994
+    },
+    "global_features": {
+      "global_sharpness": 191.2742,
+      "global_contrast": 77.8965,
+      "mean_luminance": 149.484,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.021,
+      "dof_separation_ratio": 1.9385,
+      "global_context_score": 76.7864
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5200.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 274.6877,
+      "face_tenengrad": 34.382,
+      "subject_sharpness": 138.6537,
+      "local_contrast": 55.5903,
+      "motion_blur_metric": 0.245,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 62.1911
+    },
+    "global_features": {
+      "global_sharpness": 84.7715,
+      "global_contrast": 72.6326,
+      "mean_luminance": 120.036,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0164,
+      "dof_separation_ratio": 2.1884,
+      "global_context_score": 70.5916
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5201.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 189.9943,
+      "face_tenengrad": 18.6239,
+      "subject_sharpness": 105.7174,
+      "local_contrast": 57.7281,
+      "motion_blur_metric": 0.27,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 58.365
+    },
+    "global_features": {
+      "global_sharpness": 89.7532,
+      "global_contrast": 70.8639,
+      "mean_luminance": 103.0114,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0358,
+      "dof_separation_ratio": 1.3449,
+      "global_context_score": 66.4388
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5207.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": true,
+      "framing_anomaly": "NONE"
+    },
+    "local_features": {
+      "face_sharpness": 464.8083,
+      "face_tenengrad": 32.8221,
+      "subject_sharpness": 266.6664,
+      "local_contrast": 55.384,
+      "motion_blur_metric": 0.2924,
+      "framing_defect_detected": false,
+      "face_present": true,
+      "local_technical_score": 68.83
+    },
+    "global_features": {
+      "global_sharpness": 106.6372,
+      "global_contrast": 40.4715,
+      "mean_luminance": 195.7548,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0,
+      "dof_separation_ratio": 6.167,
+      "global_context_score": 62.6767
+    }
+  },
+  "D:\\Syntax Erreur - Product Studio\\Context Aware Image Quality Assessment\\context-aware-iqa\\data\\raw\\event_01_birthday\\burst_02\\DSC_5216.jpg": {
+    "localization": {
+      "subject_detected": true,
+      "face_detected": false,
+      "framing_anomaly": "HEAD_CROPPED"
+    },
+    "local_features": {
+      "face_sharpness": 0.0,
+      "face_tenengrad": 0.0,
+      "subject_sharpness": 186.5353,
+      "local_contrast": 56.2694,
+      "motion_blur_metric": 0.2898,
+      "framing_defect_detected": true,
+      "face_present": false,
+      "local_technical_score": 17.2721
+    },
+    "global_features": {
+      "global_sharpness": 103.7506,
+      "global_contrast": 58.6026,
+      "mean_luminance": 129.1491,
+      "highlight_clipping_ratio": 0.0,
+      "shadow_underexposure_ratio": 0.0215,
+      "dof_separation_ratio": 6.6243,
+      "global_context_score": 73.4195
+    }
+  }
+}

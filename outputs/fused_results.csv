@@ -1,0 +1,45 @@
+image_id,file_path,event_id,burst_id,split_category,rights_status,expert_score_usability,local_defect_flag,baseline_score,fusion_mode,context_aware_score,local_score,global_score,subject_detected,face_detected,framing_anomaly,motion_blur_metric,dof_separation
+bday_01,data/raw/event_01_birthday/burst_01/DSC_5108.jpg,birthday_shoot,burst_01,,consented,Keep,None,65.1215,full,63.1996,64.9584,59.9333,True,True,NONE,0.2696,15.9921
+bday_02,data/raw/event_01_birthday/burst_01/DSC_5109.jpg,birthday_shoot,burst_01,,consented,Keep,None,64.1669,full,62.7205,64.1785,60.0129,True,True,NONE,0.2976,10.8784
+bday_03,data/raw/event_01_birthday/burst_01/DSC_5110.jpg,birthday_shoot,burst_01,,consented,Keep,None,38.3159,full,65.1982,66.7541,62.3086,True,True,NONE,0.2593,10.8711
+bday_04,data/raw/event_01_birthday/burst_01/DSC_5116.jpg,birthday_shoot,burst_01,,consented,Keep,None,48.6303,full,61.8133,62.1550,61.1786,True,True,NONE,0.3178,34.8113
+bday_05,data/raw/event_01_birthday/burst_01/DSC_5118.jpg,birthday_shoot,burst_01,,consented,Keep,None,42.9946,full,67.0764,69.5346,62.5113,True,True,NONE,0.2719,67.4329
+bday_06,data/raw/event_01_birthday/burst_01/DSC_5147.jpg,birthday_shoot,burst_01,,consented,Keep,None,47.6965,full,59.1620,55.5570,65.8570,True,True,NONE,0.3418,13.5087
+bday_07,data/raw/event_01_birthday/burst_01/DSC_5148.jpg,birthday_shoot,burst_01,,consented,Keep,None,41.0739,full,60.6333,57.2667,66.8857,True,True,NONE,0.3409,13.8026
+bday_08,data/raw/event_01_birthday/burst_01/DSC_5162.jpg,birthday_shoot,burst_01,,consented,Keep,None,58.8561,full,66.0252,64.3037,69.2223,True,True,NONE,0.3007,3.5962
+bday_09,data/raw/event_01_birthday/burst_01/DSC_5165.jpg,birthday_shoot,burst_01,,consented,Keep,None,49.0158,full,67.0580,66.1129,68.8133,True,True,NONE,0.2842,2.9604
+bday_10,data/raw/event_01_birthday/burst_02/DSC_5073.jpg,birthday_shoot,burst_02,,consented,Keep,None,50.4494,full,70.3936,69.2163,72.5799,True,True,NONE,0.2388,3.4512
+bday_11,data/raw/event_01_birthday/burst_02/DSC_5074.jpg,birthday_shoot,burst_02,,consented,Keep,None,49.0893,full,68.6022,65.4431,74.4691,True,True,NONE,0.2711,8.4552
+bday_12,data/raw/event_01_birthday/burst_02/DSC_5076.jpg,birthday_shoot,burst_02,,consented,Keep,None,36.0847,full,68.6386,64.7955,75.7759,True,True,NONE,0.2570,10.5470
+bday_13,data/raw/event_01_birthday/burst_02/DSC_5079.jpg,birthday_shoot,burst_02,,consented,Keep,None,58.0778,full,67.8103,67.8337,67.7668,True,True,NONE,0.2322,1.5867
+bday_14,data/raw/event_01_birthday/burst_02/DSC_5080.jpg,birthday_shoot,burst_02,,consented,Keep,None,44.4367,full,71.3951,66.4276,80.6205,True,True,NONE,0.2280,13.1899
+bday_15,data/raw/event_01_birthday/burst_02/DSC_5081.jpg,birthday_shoot,burst_02,,consented,Keep,None,55.8388,full,62.7855,61.6568,64.8817,True,True,NONE,0.2831,21.2800
+bday_16,data/raw/event_01_birthday/burst_02/DSC_5084.jpg,birthday_shoot,burst_02,,consented,Keep,None,61.9206,full,72.4984,74.8378,68.1539,True,True,NONE,0.2080,1.9774
+bday_17,data/raw/event_01_birthday/burst_02/DSC_5092.jpg,birthday_shoot,burst_02,,consented,Review,Motion Blur,56.0339,full,43.2746,50.1455,46.2001,True,True,NONE,0.5720,1.5228
+bday_18,data/raw/event_01_birthday/burst_02/DSC_5094.jpg,birthday_shoot,burst_02,,consented,Review,Motion Blur,69.6826,full,52.0247,54.7180,50.6615,True,True,NONE,0.4783,1.1307
+bday_19,data/raw/event_01_birthday/burst_02/DSC_5100.jpg,birthday_shoot,burst_02,,consented,Keep,None,34.4731,full,66.2751,61.5094,75.1257,True,True,NONE,0.2320,3.1379
+bday_20,data/raw/event_01_birthday/burst_02/DSC_5123.jpg,birthday_shoot,burst_02,,consented,Keep,None,63.8513,full,61.9575,63.3829,59.3102,True,True,NONE,0.2692,8.4757
+bday_21,data/raw/event_01_birthday/burst_02/DSC_5125.jpg,birthday_shoot,burst_02,,consented,Keep,None,44.6782,full,65.2229,66.2350,63.3434,True,True,NONE,0.2800,46.2419
+bday_22,data/raw/event_01_birthday/burst_02/DSC_5126.jpg,birthday_shoot,burst_02,,consented,Keep,None,21.0090,full,63.9372,61.4223,68.6077,True,True,NONE,0.2617,41.5373
+bday_23,data/raw/event_01_birthday/burst_02/DSC_5132.jpg,birthday_shoot,burst_02,,consented,Keep,None,43.3386,full,62.9888,58.7306,70.8968,True,True,NONE,0.2973,2.9756
+bday_24,data/raw/event_01_birthday/burst_02/DSC_5136.jpg,birthday_shoot,burst_02,,consented,Keep,None,37.9680,full,62.0734,53.7383,77.5528,True,True,NONE,0.3355,9.2005
+bday_25,data/raw/event_01_birthday/burst_02/DSC_5141.jpg,birthday_shoot,burst_02,,consented,Keep,None,45.4221,full,58.9803,58.9816,58.9780,True,True,NONE,0.3134,8.3294
+bday_26,data/raw/event_01_birthday/burst_02/DSC_5145.jpg,birthday_shoot,burst_02,,consented,Keep,None,44.7763,full,63.4456,62.2051,65.7494,True,True,NONE,0.3158,19.9865
+bday_27,data/raw/event_01_birthday/burst_02/DSC_5150.jpg,birthday_shoot,burst_02,,consented,Keep,None,39.4051,full,57.5316,55.8207,60.7089,True,True,NONE,0.2383,1.1462
+bday_28,data/raw/event_01_birthday/burst_02/DSC_5155.jpg,birthday_shoot,burst_02,,consented,Keep,None,24.4316,full,59.6825,57.1948,64.3025,True,True,NONE,0.3189,2.6029
+bday_29,data/raw/event_01_birthday/burst_02/DSC_5156.jpg,birthday_shoot,burst_02,,consented,Keep,None,34.6743,full,64.1579,64.5499,63.4300,True,True,NONE,0.2602,1.7543
+bday_30,data/raw/event_01_birthday/burst_02/DSC_5158.jpg,birthday_shoot,burst_02,,consented,Keep,None,28.3986,full,57.3911,55.0698,61.7021,True,True,NONE,0.3230,1.8544
+bday_31,data/raw/event_01_birthday/burst_02/DSC_5166.jpg,birthday_shoot,burst_02,,consented,Keep,None,55.6830,full,63.7081,65.5545,60.2790,True,True,NONE,0.2809,1.7150
+bday_32,data/raw/event_01_birthday/burst_02/DSC_5169.jpg,birthday_shoot,burst_02,,consented,Keep,None,35.3627,full,62.4790,64.9957,57.8052,True,True,NONE,0.2690,0.4641
+bday_33,data/raw/event_01_birthday/burst_02/DSC_5172.jpg,birthday_shoot,burst_02,,consented,Keep,None,42.3561,full,58.2483,58.8998,57.0385,True,True,NONE,0.3500,1.2838
+bday_34,data/raw/event_01_birthday/burst_02/DSC_5180.jpg,birthday_shoot,burst_02,,consented,Keep,None,40.0012,full,58.5985,56.8237,61.8946,True,True,NONE,0.3158,2.5462
+bday_35,data/raw/event_01_birthday/burst_02/DSC_5182.jpg,birthday_shoot,burst_02,,consented,Keep,None,46.2990,full,58.9532,54.9412,66.4041,True,True,NONE,0.3318,3.8531
+bday_36,data/raw/event_01_birthday/burst_02/DSC_5183.jpg,birthday_shoot,burst_02,,consented,Review,Face Turned Away,70.2187,full,65.9892,57.7556,81.2801,True,True,NONE,0.2783,7.1480
+bday_37,data/raw/event_01_birthday/burst_02/DSC_5186.jpg,birthday_shoot,burst_02,,consented,Review,Face Turned Away,61.1003,full,69.0935,64.5823,77.4715,True,True,NONE,0.2329,6.3168
+bday_38,data/raw/event_01_birthday/burst_02/DSC_5191.jpg,birthday_shoot,burst_02,,consented,Keep,None,42.9238,full,66.6950,63.2536,73.0861,True,True,NONE,0.2303,1.8891
+bday_39,data/raw/event_01_birthday/burst_02/DSC_5196.jpg,birthday_shoot,burst_02,,consented,Keep,None,33.4474,full,58.5252,57.6001,60.2433,True,True,NONE,0.2734,1.0618
+bday_40,data/raw/event_01_birthday/burst_02/DSC_5199.jpg,birthday_shoot,burst_02,,consented,Keep,None,41.1540,full,71.6599,68.8994,76.7864,True,True,NONE,0.2109,1.9385
+bday_41,data/raw/event_01_birthday/burst_02/DSC_5200.jpg,birthday_shoot,burst_02,,consented,Keep,None,43.5742,full,65.1313,62.1911,70.5916,True,True,NONE,0.2450,2.1884
+bday_42,data/raw/event_01_birthday/burst_02/DSC_5201.jpg,birthday_shoot,burst_02,,consented,Keep,None,33.9739,full,61.1908,58.3650,66.4388,True,True,NONE,0.2700,1.3449
+bday_43,data/raw/event_01_birthday/burst_02/DSC_5207.jpg,birthday_shoot,burst_02,,consented,Keep,None,40.0986,full,66.6763,68.8300,62.6767,True,True,NONE,0.2924,6.1670
+bday_44,data/raw/event_01_birthday/burst_02/DSC_5216.jpg,birthday_shoot,burst_02,,consented,Review,Head Cropped Out,19.8555,full,12.9233,17.2721,73.4195,True,False,HEAD_CROPPED,0.2898,6.6243

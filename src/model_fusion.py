@@ -93,34 +93,80 @@ def parse_args():
 class ContextAwareIQAFusion:
     """
     Modular fusion engine combining semantic localization, local features,
-    and global context representations.
+    and global context representations. Supports disk-backed caching of extracted
+    features for fast ablation testing.
     """
 
-    def __init__(self, mode: str = "full", w_local: float = 0.65, w_global: float = 0.35):
+    def __init__(self, mode: str = "full", w_local: float = 0.65, w_global: float = 0.35, cache_dir: Optional[str] = None):
         self.mode = mode
         self.w_local = w_local
         self.w_global = w_global
+        self.cache_dir = Path(cache_dir) if cache_dir else PROJECT_ROOT / "outputs"
+        self.cache_file = self.cache_dir / ".features_cache.json"
+        self.cache = self._load_cache()
         
         print(f"[INFO] Initializing ContextAwareIQAFusion (Mode: {self.mode})...")
-        self.localizer = SemanticLocalizer()
-        self.local_extractor = LocalFeatureExtractor()
-        self.global_extractor = GlobalFeatureExtractor()
+        self.localizer = None
+        self.local_extractor = None
+        self.global_extractor = None
+
+    def _ensure_models(self):
+        """Lazy-load neural networks only if cache miss occurs."""
+        if self.localizer is None:
+            self.localizer = SemanticLocalizer()
+        if self.local_extractor is None:
+            self.local_extractor = LocalFeatureExtractor()
+        if self.global_extractor is None:
+            self.global_extractor = GlobalFeatureExtractor()
+
+    def _load_cache(self) -> Dict[str, Any]:
+        import json
+        if self.cache_file.is_file():
+            try:
+                with open(self.cache_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def save_cache(self):
+        import json
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
+                json.dump(self.cache, f, indent=2)
+        except Exception as e:
+            print(f"[WARNING] Could not save feature cache: {e}")
 
     def evaluate_image(self, img_path: str) -> Dict[str, Any]:
         """
-        Runs the full context-aware assessment pipeline on a single image.
+        Runs the context-aware assessment pipeline on a single image.
+        Reuses cached raw features if available to accelerate ablation passes.
         """
-        with Image.open(img_path) as img:
-            rgb_img = img.convert("RGB")
-            
-            # Step 1: Semantic Localisation
-            loc = self.localizer.localize(rgb_img)
+        img_key = str(Path(img_path).resolve())
 
-            # Step 2: Local Feature Extraction
-            local_feat = self.local_extractor.extract(rgb_img, loc)
+        if img_key in self.cache:
+            entry = self.cache[img_key]
+            loc = entry["localization"]
+            local_feat = entry["local_features"]
+            global_feat = entry["global_features"]
+        else:
+            self._ensure_models()
+            with Image.open(img_path) as img:
+                rgb_img = img.convert("RGB")
+                loc = self.localizer.localize(rgb_img)
+                local_feat = self.local_extractor.extract(rgb_img, loc)
+                global_feat = self.global_extractor.extract(rgb_img, loc)
 
-            # Step 3: Global Context Extraction
-            global_feat = self.global_extractor.extract(rgb_img, loc)
+            self.cache[img_key] = {
+                "localization": {
+                    "subject_detected": loc.get("subject_detected", False),
+                    "face_detected": loc.get("face_detected", False),
+                    "framing_anomaly": loc.get("framing_anomaly", "NONE"),
+                },
+                "local_features": local_feat,
+                "global_features": global_feat,
+            }
 
         # Step 4: Fusion Computation according to ablation mode
         s_local = local_feat["local_technical_score"]
@@ -255,9 +301,15 @@ def run_fusion_pipeline():
         except Exception as e:
             print(f"[ERROR] Failed on {img_id}: {e}")
 
+    # Save feature cache for fast subsequent ablation runs
+    fusion_engine.save_cache()
+
     # Write output CSV
     if results:
         fieldnames = list(results[0].keys())
+        out_dir = os.path.dirname(os.path.abspath(args.output))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         with open(args.output, mode="w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
