@@ -79,12 +79,23 @@ def render_sidebar_controls(
                             selected_image_path = str(project_root / r.get("file_path", ""))
                             break
 
-                # 2. Category Filter & Selection Dropdown
+                # 2. Event & Category Filter Dropdowns
+                event_filter = st.selectbox(
+                    "Filter Event:",
+                    [
+                        "All Events (139 Photos)",
+                        "Event 01: Birthday Outdoor (44 photos)",
+                        "Event 02: Birthday Session 2 (95 photos)",
+                    ],
+                    disabled=(active_jump is not None),
+                )
+
                 preset_filter = st.selectbox(
                     "Filter Category:",
                     [
                         "All Photos",
                         "Keep / Usable Portraits",
+                        "Review / Flagged Photos",
                         "Motion Blur Defects",
                         "Turned Away Faces",
                         "Head Cropped Defects",
@@ -92,7 +103,7 @@ def render_sidebar_controls(
                     disabled=(active_jump is not None),
                 )
 
-                filtered_rows = DataManager.filter_manifest(manifest_rows, preset_filter)
+                filtered_rows = DataManager.filter_manifest(manifest_rows, preset_filter, event_filter)
 
                 def format_row(r):
                     img_id = r.get("image_id", "")

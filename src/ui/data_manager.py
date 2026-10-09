@@ -44,14 +44,27 @@ class DataManager:
         return baselines
 
     @staticmethod
-    def filter_manifest(rows: List[Dict[str, str]], filter_option: str) -> List[Dict[str, str]]:
-        """Filters manifest rows by research defect scenario."""
+    def filter_manifest(
+        rows: List[Dict[str, str]],
+        filter_option: str,
+        event_option: str = "All Events",
+    ) -> List[Dict[str, str]]:
+        """Filters manifest rows by event and research defect scenario."""
+        filtered = rows
+        if event_option != "All Events":
+            if "Event 01" in event_option:
+                filtered = [r for r in filtered if r.get("event_id") == "birthday_shoot"]
+            elif "Event 02" in event_option:
+                filtered = [r for r in filtered if r.get("event_id") == "event_02_birthday"]
+
         if filter_option == "Keep / Usable Portraits":
-            return [r for r in rows if r.get("expert_score_usability") == "Keep"]
+            return [r for r in filtered if r.get("expert_score_usability") == "Keep"]
+        elif filter_option == "Review / Flagged Photos":
+            return [r for r in filtered if r.get("expert_score_usability") == "Review"]
         elif filter_option == "Motion Blur Defects":
-            return [r for r in rows if "Motion Blur" in r.get("local_defect_flag", "")]
+            return [r for r in filtered if "Motion Blur" in r.get("local_defect_flag", "")]
         elif filter_option == "Turned Away Faces":
-            return [r for r in rows if "Face Turned" in r.get("local_defect_flag", "")]
+            return [r for r in filtered if "Face Turned" in r.get("local_defect_flag", "")]
         elif filter_option == "Head Cropped Defects":
-            return [r for r in rows if "Head Cropped" in r.get("local_defect_flag", "")]
-        return rows
+            return [r for r in filtered if "Head Cropped" in r.get("local_defect_flag", "")]
+        return filtered
