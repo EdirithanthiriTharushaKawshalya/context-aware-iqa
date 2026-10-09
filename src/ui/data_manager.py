@@ -11,10 +11,10 @@ class DataManager:
     """Manages loading and querying dataset manifest entries and baseline scores."""
 
     BENCHMARK_PRESETS = [
-        {"id": "bday_01", "label": "💎 Sharp Portrait (bday_01)"},
-        {"id": "bday_17", "label": "⚡ Motion Blur (bday_17)"},
-        {"id": "bday_36", "label": "👤 Turned Away (bday_36)"},
-        {"id": "bday_44", "label": "✂️ Head Cropped (bday_44)"},
+        {"id": "bday_01", "label": "Sharp Portrait (bday_01)"},
+        {"id": "bday_17", "label": "Motion Blur (bday_17)"},
+        {"id": "bday_36", "label": "Turned Away (bday_36)"},
+        {"id": "bday_44", "label": "Head Cropped (bday_44)"},
     ]
 
     @staticmethod
@@ -46,12 +46,12 @@ class DataManager:
     @staticmethod
     def filter_manifest(rows: List[Dict[str, str]], filter_option: str) -> List[Dict[str, str]]:
         """Filters manifest rows by research defect scenario."""
-        if filter_option == "🌟 Keep / Usable Portraits":
+        if filter_option == "Keep / Usable Portraits":
             return [r for r in rows if r.get("expert_score_usability") == "Keep"]
-        elif filter_option == "⚡ Motion Blur Defects":
+        elif filter_option == "Motion Blur Defects":
             return [r for r in rows if "Motion Blur" in r.get("local_defect_flag", "")]
-        elif filter_option == "👤 Turned Away Faces":
+        elif filter_option == "Turned Away Faces":
             return [r for r in rows if "Face Turned" in r.get("local_defect_flag", "")]
-        elif filter_option == "✂️ Head / Face Cropped Defects":
+        elif filter_option == "Head Cropped Defects":
             return [r for r in rows if "Head Cropped" in r.get("local_defect_flag", "")]
         return rows

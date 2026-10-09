@@ -11,6 +11,7 @@ from src.pipeline import PipelineConfig, PipelineResult
 from src.visualization.annotator import ImageAnnotator
 from src.ui.data_manager import DataManager
 from src.ui.styles import (
+    render_html_header,
     render_html_kpi_score,
     render_html_decision_badge,
     render_html_confidence_gauge,
@@ -19,19 +20,8 @@ from src.ui.styles import (
 
 
 def render_hero_header():
-    """Renders main application title banner."""
-    st.markdown(
-        """
-        <div class="hero-header">
-            <div class="hero-title">Context-Aware Image Quality Assessment (IQA)</div>
-            <div class="hero-subtitle">
-                Phase 4 Unified Research Demonstrator — Semantic Subject Localization,
-                Local Subject Clarity, Global Context Separation, and Anomaly Defect Penalty Engine.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """Renders compact top navigation bar."""
+    st.markdown(render_html_header(), unsafe_allow_html=True)
 
 
 def render_sidebar_controls(
@@ -39,14 +29,14 @@ def render_sidebar_controls(
     project_root: Path,
 ) -> Tuple[Optional[Image.Image], Optional[Dict[str, str]], PipelineConfig, Dict[str, bool]]:
     """
-    Renders sidebar controls, image selectors, preset buttons, and pipeline configuration.
+    Renders sidebar controls, image selectors, presets, and pipeline configuration.
     """
     with st.sidebar:
-        st.header("⚙️ Image Selection & Controls")
+        st.markdown("**Input Selection**")
 
         source_mode = st.radio(
-            "Select Photo Source:",
-            ["Dataset Manifest", "Upload Custom Image"],
+            "Input Mode:",
+            ["Dataset Manifest", "Upload Image"],
             index=0,
             horizontal=True,
         )
@@ -57,18 +47,49 @@ def render_sidebar_controls(
 
         if source_mode == "Dataset Manifest":
             if not manifest_rows:
-                st.error("Dataset manifest is empty or missing.")
+                st.error("Dataset manifest is missing.")
             else:
-                st.markdown("**Quick Preset Filters:**")
+                # 1. Benchmark Presets Dropdown (clean, non-truncated)
+                benchmark_selection = st.selectbox(
+                    "Benchmark Scenarios:",
+                    [
+                        "None (Manual Browsing)",
+                        "bday_01: Sharp Portrait (Intentional Bokeh)",
+                        "bday_17: Motion Blur Defect",
+                        "bday_36: Turned Away Face",
+                        "bday_44: Severe Head Cropping",
+                    ],
+                    index=0,
+                )
+
+                active_jump = None
+                if "bday_01" in benchmark_selection:
+                    active_jump = "bday_01"
+                elif "bday_17" in benchmark_selection:
+                    active_jump = "bday_17"
+                elif "bday_36" in benchmark_selection:
+                    active_jump = "bday_36"
+                elif "bday_44" in benchmark_selection:
+                    active_jump = "bday_44"
+
+                if active_jump:
+                    for r in manifest_rows:
+                        if r.get("image_id") == active_jump:
+                            manifest_meta = r
+                            selected_image_path = str(project_root / r.get("file_path", ""))
+                            break
+
+                # 2. Category Filter & Selection Dropdown
                 preset_filter = st.selectbox(
-                    "Filter Manifest by Scenario:",
+                    "Filter Category:",
                     [
                         "All Photos",
-                        "🌟 Keep / Usable Portraits",
-                        "⚡ Motion Blur Defects",
-                        "👤 Turned Away Faces",
-                        "✂️ Head / Face Cropped Defects",
+                        "Keep / Usable Portraits",
+                        "Motion Blur Defects",
+                        "Turned Away Faces",
+                        "Head Cropped Defects",
                     ],
+                    disabled=(active_jump is not None),
                 )
 
                 filtered_rows = DataManager.filter_manifest(manifest_rows, preset_filter)
@@ -78,74 +99,50 @@ def render_sidebar_controls(
                     filename = Path(r.get("file_path", "")).name
                     label = r.get("expert_score_usability", "")
                     defect = r.get("local_defect_flag", "None")
-                    defect_str = f" • {defect}" if defect and defect != "None" else ""
-                    return f"{img_id} ({filename}) — [{label}{defect_str}]"
+                    defect_str = f" | {defect}" if defect and defect != "None" else ""
+                    return f"{img_id} ({filename}) [{label}{defect_str}]"
 
-                selected_row = st.selectbox(
-                    f"Select Image ({len(filtered_rows)} available):",
-                    filtered_rows,
-                    format_func=format_row,
-                )
-
-                if selected_row:
-                    manifest_meta = selected_row
-                    rel_path = selected_row.get("file_path", "")
-                    full_p = project_root / rel_path
-                    if full_p.is_file():
-                        selected_image_path = str(full_p)
-                    else:
-                        st.warning(f"File not found on disk: {rel_path}")
-
-                # Quick Jump Buttons
-                st.markdown("---")
-                st.markdown("**⚡ Instant Benchmark Jumps:**")
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    if st.button("💎 Sharp (bday_01)", use_container_width=True):
-                        st.session_state["quick_jump"] = "bday_01"
-                    if st.button("✂️ Cropped (bday_44)", use_container_width=True):
-                        st.session_state["quick_jump"] = "bday_44"
-                with col_btn2:
-                    if st.button("⚡ Motion (bday_17)", use_container_width=True):
-                        st.session_state["quick_jump"] = "bday_17"
-                    if st.button("👤 Turned (bday_36)", use_container_width=True):
-                        st.session_state["quick_jump"] = "bday_36"
-
-                if "quick_jump" in st.session_state:
-                    jump_id = st.session_state.pop("quick_jump")
-                    for r in manifest_rows:
-                        if r.get("image_id") == jump_id:
-                            manifest_meta = r
-                            selected_image_path = str(project_root / r.get("file_path", ""))
-                            break
+                if not active_jump:
+                    selected_row = st.selectbox(
+                        f"Select Image ({len(filtered_rows)} available):",
+                        filtered_rows,
+                        format_func=format_row,
+                    )
+                    if selected_row:
+                        manifest_meta = selected_row
+                        rel_path = selected_row.get("file_path", "")
+                        full_p = project_root / rel_path
+                        if full_p.is_file():
+                            selected_image_path = str(full_p)
+                        else:
+                            st.warning(f"File not found on disk: {rel_path}")
         else:
             uploaded_image = st.file_uploader(
-                "Upload an Event Photograph:",
+                "Upload Image File:",
                 type=["jpg", "jpeg", "png", "webp"],
-                help="Supports portrait, burst, or event photography in RGB format.",
+                help="Supports event photos in RGB format.",
             )
 
-        # Pipeline Configuration Parameters
+        # 3. Pipeline Configuration Parameters
         st.markdown("---")
-        with st.expander("🛠️ Pipeline Parameters & Ablation", expanded=False):
-            st.caption("Adjust fusion weights and decision boundary:")
+        with st.expander("Pipeline Configuration", expanded=False):
             threshold = st.slider(
-                "Keep / Review Threshold:",
+                "Decision Threshold (Keep vs Review):",
                 min_value=30.0,
                 max_value=85.0,
                 value=55.0,
                 step=1.0,
-                help="Calibrated decision separation threshold from Phase 4 ablation experiments.",
+                help="Separation threshold calibrated from Phase 4 ablation experiments.",
             )
             w_local = st.slider(
-                "Local Subject Weight (w_local):",
+                "Local Technical Weight (w_local):",
                 min_value=0.0,
                 max_value=1.0,
                 value=0.65,
                 step=0.05,
             )
             w_global = round(1.0 - w_local, 2)
-            st.text(f"Global Context Weight (w_global): {w_global:.2f}")
+            st.caption(f"Global Context Weight (w_global): {w_global:.2f}")
 
             ablation_mode = st.selectbox(
                 "Ablation Mode:",
@@ -153,17 +150,17 @@ def render_sidebar_controls(
                 index=0,
                 format_func=lambda m: {
                     "full": "Full Context-Aware (Local + Global + Penalties)",
-                    "local_only": "Local Subject Only (No Global Context)",
-                    "global_only": "Global Context Only (Traditional Frame)",
-                    "no_penalty": "Fusion without Defect Penalties",
+                    "local_only": "Local Technical Only",
+                    "global_only": "Global Context Only",
+                    "no_penalty": "Fusion without Penalties",
                 }[m],
             )
 
-        # Visual overlay toggles
+        # 4. Visualization Layers
         st.markdown("---")
-        st.markdown("**🎨 Visualization Overlays:**")
-        show_subject = st.checkbox("Show Subject Bounding Box (Cyan)", value=True)
-        show_face = st.checkbox("Show Face / Head Bounding Box (Gold)", value=True)
+        st.markdown("**Visualization Layers**")
+        show_subject = st.checkbox("Subject Layer (Cyan)", value=True)
+        show_face = st.checkbox("Face Layer (Gold)", value=True)
 
     # Load PIL image
     raw_img = None
@@ -205,7 +202,7 @@ def render_kpi_dashboard(
     defect_flag = manifest_meta.get("local_defect_flag", "None") if manifest_meta else "None"
     img_id = manifest_meta.get("image_id", "") if manifest_meta else ""
     baseline_score = baseline_map.get(img_id, "N/A")
-    match_icon = "✅" if (gt_label == result.classification) else ("⚠️" if gt_label != "N/A" else "—")
+    match_flag = (gt_label == result.classification)
 
     c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.3, 1.3])
 
@@ -232,11 +229,11 @@ def render_kpi_dashboard(
         )
     with c4:
         st.markdown(
-            render_html_ground_truth(gt_label, match_icon, defect_flag, baseline_score),
+            render_html_ground_truth(gt_label, match_flag, defect_flag, baseline_score),
             unsafe_allow_html=True,
         )
 
-    st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 16px;'></div>", unsafe_allow_html=True)
 
 
 def render_visual_inspection(
@@ -245,12 +242,12 @@ def render_visual_inspection(
     visual_flags: Dict[str, bool],
 ):
     """Renders left column visual inspection tabs."""
-    st.subheader("🖼️ Visual Semantic Inspection")
+    st.markdown('<div class="section-header">Visual Semantic Inspection</div>', unsafe_allow_html=True)
 
     tab_annotated, tab_original, tab_crops = st.tabs([
-        "🎯 Annotated Bounding Boxes",
-        "📷 Original Photo",
-        "🔍 Localized Subject & Face Crops",
+        "Annotated Image",
+        "Original Image",
+        "Region Crops",
     ])
 
     with tab_annotated:
@@ -260,30 +257,30 @@ def render_visual_inspection(
             show_subject=visual_flags.get("show_subject", True),
             show_face=visual_flags.get("show_face", True),
         )
-        st.image(annotated_img, use_container_width=True, caption="Detected Primary Subject & Face Regions")
+        st.image(annotated_img, use_container_width=True)
 
         leg1, leg2, leg3 = st.columns(3)
         with leg1:
-            st.markdown("🟦 **Cyan:** Primary Person")
+            st.caption("Subject Layer: Cyan")
         with leg2:
-            st.markdown("🟨 **Gold:** Face / Head")
+            st.caption("Face Layer: Gold")
         with leg3:
-            st.markdown(f"📐 **Res:** `{raw_img.width} × {raw_img.height}`")
+            st.caption(f"Resolution: {raw_img.width} × {raw_img.height}")
 
     with tab_original:
-        st.image(raw_img, use_container_width=True, caption="Original Input Photograph")
+        st.image(raw_img, use_container_width=True)
 
     with tab_crops:
         crops = ImageAnnotator.extract_crops(raw_img, result.localization)
         crop1, crop2 = st.columns(2)
         with crop1:
-            st.markdown("**Primary Subject Crop:**")
+            st.markdown("**Subject Body Crop:**")
             if crops.get("subject"):
                 st.image(crops["subject"], use_container_width=True)
             else:
                 st.info("No subject isolated.")
         with crop2:
-            st.markdown("**Isolated Face / Head Crop:**")
+            st.markdown("**Face / Head Crop:**")
             if crops.get("face"):
                 st.image(crops["face"], use_container_width=True)
             else:
@@ -292,7 +289,7 @@ def render_visual_inspection(
 
 def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
     """Renders right column multi-stage score breakdown and penalties."""
-    st.subheader("📊 Multi-Stage Score Breakdown")
+    st.markdown('<div class="section-header">Multi-Stage Feature & Penalty Breakdown</div>', unsafe_allow_html=True)
 
     local_f = result.local_features
     global_f = result.global_features
@@ -302,8 +299,8 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         f"""
         <div class="breakdown-card">
             <div class="breakdown-title">
-                <span>🔬 Local Technical Score</span>
-                <span style="color: #38bdf8;">{result.s_local:.1f} / 100 <span style="font-size:0.75rem; color:#94a3b8;">({int(config.w_local*100)}% Weight)</span></span>
+                <span>Local Technical Evaluation</span>
+                <span style="color: #38bdf8; font-family:'JetBrains Mono', monospace;">{result.s_local:.1f} / 100 <span style="font-size:0.72rem; color:#64748b;">({int(config.w_local*100)}% Weight)</span></span>
             </div>
             <div class="metric-row">
                 <span>Face Sharpness (Laplacian Var):</span>
@@ -319,8 +316,8 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
             </div>
             <div class="metric-row">
                 <span>Motion Blur Anisotropy Metric:</span>
-                <span class="val" style="color: {'#ef4444' if local_f.get('motion_blur_metric', 0.0) > 0.45 else '#10b981'};">
-                    {local_f.get('motion_blur_metric', 0.0):.3f} {'(⚠️ Blur Defect)' if local_f.get('motion_blur_metric', 0.0) > 0.45 else '(Clean)'}
+                <span class="val" style="color: {'#f87171' if local_f.get('motion_blur_metric', 0.0) > 0.45 else '#34d399'};">
+                    {local_f.get('motion_blur_metric', 0.0):.3f} {'(Anisotropic Blur)' if local_f.get('motion_blur_metric', 0.0) > 0.45 else '(Nominal)'}
                 </span>
             </div>
         </div>
@@ -330,17 +327,17 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
 
     # 2. Global Context Card
     dof_val = global_f.get("dof_separation_ratio", 1.0)
-    dof_color = "#10b981" if dof_val >= 2.0 else "#94a3b8"
+    dof_color = "#34d399" if dof_val >= 2.0 else "#94a3b8"
     st.markdown(
         f"""
         <div class="breakdown-card">
             <div class="breakdown-title">
-                <span>🌐 Global Context Score</span>
-                <span style="color: #c084fc;">{result.s_global:.1f} / 100 <span style="font-size:0.75rem; color:#94a3b8;">({int(config.w_global*100)}% Weight)</span></span>
+                <span>Global Context Evaluation</span>
+                <span style="color: #c084fc; font-family:'JetBrains Mono', monospace;">{result.s_global:.1f} / 100 <span style="font-size:0.72rem; color:#64748b;">({int(config.w_global*100)}% Weight)</span></span>
             </div>
             <div class="metric-row">
-                <span>Subject / Background DOF Separation:</span>
-                <span class="val" style="color: {dof_color};">{dof_val:.2f}x {'(✨ Bokeh Reward)' if dof_val >= 2.0 else ''}</span>
+                <span>Depth-of-Field (Bokeh) Ratio:</span>
+                <span class="val" style="color: {dof_color};">{dof_val:.2f}x {'(Bokeh Reward)' if dof_val >= 2.0 else ''}</span>
             </div>
             <div class="metric-row">
                 <span>Global Scene Contrast:</span>
@@ -364,8 +361,8 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         """
         <div class="breakdown-card">
             <div class="breakdown-title">
-                <span>⚡ Defect & Framing Penalties</span>
-                <span style="color: #f43f5e;">Deductions</span>
+                <span>Semantic Anomaly & Defect Deductions</span>
+                <span style="color: #f43f5e; font-family:'JetBrains Mono', monospace;">Deductions</span>
             </div>
         """,
         unsafe_allow_html=True,
@@ -377,8 +374,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             f"""
             <div class="penalty-item">
-                <b>✂️ Severe Framing Defect (-{result.framing_penalty_pts:.1f} pts):</b><br/>
-                Subject head is cropped at image boundary. Score capped at defective usability level (max 25.0).
+                <span class="penalty-tag">ANOMALY</span> <b>Framing Defect</b>: Subject head cropped at boundary (-{result.framing_penalty_pts:.1f} pts, ceiling: 25.0).
             </div>
             """,
             unsafe_allow_html=True,
@@ -389,8 +385,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             f"""
             <div class="penalty-item">
-                <b>👤 Turned Away Face (-{result.face_penalty_pts:.1f} pts):</b><br/>
-                Subject is turned away or facial features are not visible in portrait (-40% penalty).
+                <span class="penalty-tag">ANOMALY</span> <b>Orientation Defect</b>: Subject turned away or face occluded (-{result.face_penalty_pts:.1f} pts, -40%).
             </div>
             """,
             unsafe_allow_html=True,
@@ -401,8 +396,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             f"""
             <div class="penalty-item">
-                <b>🌪️ Severe Motion Blur (-{result.motion_penalty_pts:.1f} pts):</b><br/>
-                Directional gradient anisotropy exceeds threshold ({local_f.get('motion_blur_metric', 0.0):.3f} > 0.450).
+                <span class="penalty-tag">ANOMALY</span> <b>Motion Blur</b>: Directional gradient anisotropy exceeds threshold (-{result.motion_penalty_pts:.1f} pts).
             </div>
             """,
             unsafe_allow_html=True,
@@ -412,8 +406,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             """
             <div class="penalty-none">
-                <b>✅ No Anomaly Penalties Applied</b><br/>
-                Framing is intact, face is clearly visible, and motion stability is confirmed.
+                <span class="clean-tag">NOMINAL</span> Framing geometry intact, face detected, motion within tolerance.
             </div>
             """,
             unsafe_allow_html=True,
@@ -423,16 +416,14 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
 
     # Formula Math Box
     score_color = "#10b981" if result.unified_score >= config.threshold else "#f43f5e"
-    st.markdown(
-        f"""
-        <div style="background: rgba(30, 41, 59, 0.4); border-radius: 8px; padding: 10px 14px; font-size: 0.83rem; color: #94a3b8; border: 1px dashed rgba(255,255,255,0.1);">
-            <b>Formula:</b> [{config.w_local:.2f} × {result.s_local:.1f}] + [{config.w_global:.2f} × {result.s_global:.1f}] = <b>{result.base_score:.1f}</b> base
-            {" - " + str(result.total_defect_penalty) + " penalties" if result.total_defect_penalty > 0 else ""}
-            = <b style="color: {score_color}; font-size: 0.95rem;">{result.unified_score:.1f} final</b>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    deduction_str = f" - {result.total_defect_penalty:.1f} deductions" if result.total_defect_penalty > 0 else ""
+    formula_html = (
+        f'<div class="formula-container">'
+        f'<b>Formula:</b> [{config.w_local:.2f} × {result.s_local:.1f}] + [{config.w_global:.2f} × {result.s_global:.1f}] = {result.base_score:.1f} base'
+        f'{deduction_str} = <span style="color: {score_color}; font-weight:700;">{result.unified_score:.1f} final</span>'
+        f'</div>'
     )
+    st.markdown(formula_html, unsafe_allow_html=True)
 
 
 def render_diagnostics_and_table(
@@ -442,7 +433,7 @@ def render_diagnostics_and_table(
 ):
     """Renders bottom expandable diagnostic telemetry and manifest comparison table."""
     st.markdown("---")
-    with st.expander("🔬 Deep Diagnostic Telemetry & Bounding Box Coordinates", expanded=False):
+    with st.expander("Diagnostic Telemetry & Semantic Coordinates", expanded=False):
         t1, t2 = st.columns(2)
         with t1:
             st.markdown("**Semantic Coordinates & Flags:**")
@@ -458,16 +449,16 @@ def render_diagnostics_and_table(
             }
             st.json(loc_data)
         with t2:
-            st.markdown("**Raw Local & Global Feature Vectors:**")
+            st.markdown("**Extracted Feature Vectors:**")
             raw_features = {
-                "Local": result.local_features,
-                "Global": result.global_features,
+                "Local Features": result.local_features,
+                "Global Features": result.global_features,
             }
             st.json(raw_features)
 
     if manifest_rows:
-        with st.expander("📚 Dataset Manifest Context & Phase 3 Baseline Benchmark Table", expanded=False):
-            st.caption("Browse how the Context-Aware Phase 4 pipeline compares against baseline No-Reference IQA across event bursts:")
+        with st.expander("Dataset Manifest & Benchmark Comparisons", expanded=False):
+            st.caption("Phase 4 Context-Aware pipeline vs. Phase 3 No-Reference baseline across event bursts:")
             preview_data = []
             for r in manifest_rows:
                 img_id = r.get("image_id", "")

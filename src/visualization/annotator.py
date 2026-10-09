@@ -1,7 +1,7 @@
 """
 Image Annotation & Visual Markup Module
 
-Provides decoupled rendering of bounding boxes, anomaly warning banners,
+Provides decoupled rendering of bounding boxes, telemetry tags,
 and isolated subject/face crop extraction for high-resolution event photographs.
 """
 
@@ -12,22 +12,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 class ImageAnnotator:
     """
-    Renders high-contrast bounding boxes, badges, and warning overlays on PIL images.
+    Renders clean, high-precision bounding boxes and metadata tags on PIL images
+    without label collisions.
     """
 
-    COLOR_SUBJECT_BOX = "#06b6d4"  # Cyan
-    COLOR_SUBJECT_BADGE = "#0891b2"
-    COLOR_FACE_BOX = "#f59e0b"     # Amber/Gold
-    COLOR_FACE_BADGE = "#d97706"
-    COLOR_DEFECT_BADGE = "#dc2626"   # Red
+    COLOR_SUBJECT = "#06b6d4"  # Cyan
+    COLOR_FACE = "#f59e0b"     # Amber / Gold
+    COLOR_DEFECT = "#ef4444"   # Red
 
     @staticmethod
-    def get_font(size: int = 24) -> ImageFont.ImageFont:
-        """Selects available system font or falls back cleanly."""
+    def get_font(size: int = 18) -> ImageFont.ImageFont:
+        """Selects clean system font or falls back cleanly."""
         font_candidates = [
             "C:/Windows/Fonts/segoeui.ttf",
             "C:/Windows/Fonts/arial.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
         ]
         for path in font_candidates:
@@ -47,60 +46,64 @@ class ImageAnnotator:
         show_face: bool = True,
     ) -> Image.Image:
         """
-        Draws bounding boxes and metadata badges on an image copy.
+        Draws bounding boxes and non-overlapping labels on an image copy.
         """
         annotated = img.copy()
         draw = ImageDraw.Draw(annotated)
         w, h = img.size
 
-        # Proportional line width and typography scaling
-        line_w = max(4, int(min(w, h) * 0.005))
-        font_size = max(18, int(min(w, h) * 0.022))
+        # Crisp proportional line width and font sizing
+        line_w = max(2, int(min(w, h) * 0.003))
+        font_size = max(14, int(min(w, h) * 0.016))
         font = cls.get_font(font_size)
 
         # 1. Primary Subject Box
         subj_box = localization.get("subject_bbox")
         if show_subject and subj_box is not None and localization.get("subject_detected", False):
-            sx1, sy1, sx2, sy2 = subj_box
+            sx1, sy1, sx2, sy2 = [float(c) for c in subj_box]
             conf = localization.get("subject_confidence", 0.0)
-            label = f"Primary Subject ({conf*100:.1f}%)"
+            subj_label = f"Subject [{conf*100:.0f}%]"
 
-            draw.rectangle([sx1, sy1, sx2, sy2], outline=cls.COLOR_SUBJECT_BOX, width=line_w)
+            # Draw crisp bounding box
+            draw.rectangle([sx1, sy1, sx2, sy2], outline=cls.COLOR_SUBJECT, width=line_w)
 
-            # Badge background
-            bbox = draw.textbbox((sx1, sy1), label, font=font)
-            bw = bbox[2] - bbox[0] + 16
-            bh = bbox[3] - bbox[1] + 12
-            by1 = max(0, sy1 - bh)
-            by2 = by1 + bh
-            draw.rectangle([sx1, by1, sx1 + bw, by2], fill=cls.COLOR_SUBJECT_BADGE)
-            draw.text((sx1 + 8, by1 + 4), label, fill="#ffffff", font=font)
+            # Position Subject tag at BOTTOM-LEFT to avoid colliding with Face tag at top
+            bbox = draw.textbbox((sx1, sy2), subj_label, font=font)
+            bw = bbox[2] - bbox[0] + 12
+            bh = bbox[3] - bbox[1] + 8
+
+            # Place inside or just above bottom boundary
+            tag_y1 = max(0, sy2 - bh)
+            tag_y2 = tag_y1 + bh
+            draw.rectangle([sx1, tag_y1, sx1 + bw, tag_y2], fill="#0e7490")
+            draw.text((sx1 + 6, tag_y1 + 4), subj_label, fill="#ffffff", font=font)
 
         # 2. Face / Head Region Box
         face_box = localization.get("face_bbox")
         if show_face and face_box is not None and localization.get("face_detected", False):
-            fx1, fy1, fx2, fy2 = face_box
+            fx1, fy1, fx2, fy2 = [float(c) for c in face_box]
             fconf = localization.get("face_confidence", 0.0)
-            flabel = f"Face / Head ({fconf*100:.1f}%)"
+            face_label = f"Face [{fconf*100:.0f}%]"
 
-            draw.rectangle([fx1, fy1, fx2, fy2], outline=cls.COLOR_FACE_BOX, width=line_w)
+            draw.rectangle([fx1, fy1, fx2, fy2], outline=cls.COLOR_FACE, width=line_w)
 
-            bbox = draw.textbbox((fx1, fy1), flabel, font=font)
-            bw = bbox[2] - bbox[0] + 16
-            bh = bbox[3] - bbox[1] + 12
-            by1 = max(0, fy1 - bh)
-            by2 = by1 + bh
-            draw.rectangle([fx1, by1, fx1 + bw, by2], fill=cls.COLOR_FACE_BADGE)
-            draw.text((fx1 + 8, by1 + 4), flabel, fill="#ffffff", font=font)
+            # Position Face tag at TOP-LEFT
+            bbox = draw.textbbox((fx1, fy1), face_label, font=font)
+            bw = bbox[2] - bbox[0] + 12
+            bh = bbox[3] - bbox[1] + 8
+            tag_y1 = max(0, fy1 - bh)
+            tag_y2 = tag_y1 + bh
+            draw.rectangle([fx1, tag_y1, fx1 + bw, tag_y2], fill="#b45309")
+            draw.text((fx1 + 6, tag_y1 + 4), face_label, fill="#ffffff", font=font)
 
-        # 3. Framing Anomaly Warning Banner
+        # 3. Framing Anomaly Warning Banner (Technical HUD style)
         if localization.get("framing_anomaly") == "HEAD_CROPPED":
-            warn_msg = "⚠️ DEFECT DETECTED: HEAD / FACE CROPPED OUT"
-            bbox = draw.textbbox((20, 20), warn_msg, font=font)
-            bw = bbox[2] - bbox[0] + 28
-            bh = bbox[3] - bbox[1] + 18
-            draw.rectangle([20, 20, 20 + bw, 20 + bh], fill=cls.COLOR_DEFECT_BADGE)
-            draw.text((34, 28), warn_msg, fill="#ffffff", font=font)
+            warn_msg = "ANOMALY: HEAD_CROPPED (UPPER BOUND OVERFLOW)"
+            bbox = draw.textbbox((16, 16), warn_msg, font=font)
+            bw = bbox[2] - bbox[0] + 20
+            bh = bbox[3] - bbox[1] + 12
+            draw.rectangle([16, 16, 16 + bw, 16 + bh], fill="#991b1b")
+            draw.text((26, 22), warn_msg, fill="#ffffff", font=font)
 
         return annotated
 

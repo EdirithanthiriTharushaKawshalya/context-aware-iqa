@@ -28,11 +28,11 @@ from src.ui.components import (
 # Application Setup & Resource Caching
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Context-Aware IQA | Phase 4 Demonstrator",
-    page_icon="📸",
+    page_title="Context-Aware IQA | Research Demonstrator",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+# Apply UI design system CSS
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
@@ -67,7 +67,7 @@ def main():
     )
 
     if raw_img is None:
-        st.info("👈 Please select an image from the dataset manifest or upload a photograph in the sidebar.")
+        st.info("Select an image from the dataset manifest or upload a file using the sidebar controls.")
         return
 
     # 3. Model Inference Execution
