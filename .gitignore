@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Caches & Temporary Artifacts
+outputs/.features_cache.json
+*.tmp
+*.log
+
+# Large Datasets & Raw Images (Stored on Hugging Face)
+# Event 01 and 02 are retained as starter baseline.
+# All subsequent raw event folders are synced to Hugging Face:
+data/raw/event_03*
+data/raw/event_04*
+data/raw/event_05*
+data/raw/event_06*
+data/raw/event_07*
+data/raw/event_08*
+data/raw/event_09*
+data/raw/event_10*
+data/raw/event_11*
+data/raw/event_12*
+data/raw/*.zip
+data/raw/*.tar.gz
