@@ -158,7 +158,8 @@ class SemanticLocalizer:
                 else:
                     small = np_img
 
-                bboxes = face_detector.detect_faces(small)
+                with torch.no_grad():
+                    bboxes = face_detector.detect_faces(small)
                 if len(bboxes) > 0:
                     # Choose highest confidence face
                     best_face = max(bboxes, key=lambda b: b[4])
@@ -183,20 +184,18 @@ class SemanticLocalizer:
             if is_upper_edge_cropped or (subj_y1 / orig_h < 0.01 and subj_h > 0.8 * orig_h):
                 result["face_detected"] = False
                 result["framing_anomaly"] = "HEAD_CROPPED"
-            else:
-                # Anatomical approximation for upper head region
+            elif face_detector is None:
+                # No dedicated detector available: approximate the upper head region as the face.
                 head_y2 = subj_y1 + (subj_h * 0.28)
                 head_x1 = subj_x1 + (subj_w * 0.20)
                 head_x2 = subj_x2 - (subj_w * 0.20)
-                
-                # Verify if this upper region is skin/facial tone or back of head
-                head_crop = img.crop((head_x1, subj_y1, head_x2, head_y2))
-                head_stat = np.array(head_crop)
-                
-                # Anomaly check: if upper region is uniform/low variance or turned away
                 result["face_bbox"] = [head_x1, subj_y1, head_x2, head_y2]
                 result["face_confidence"] = 0.7
                 result["face_detected"] = True
+            else:
+                # Detector ran but found no confident face -> subject likely turned away.
+                result["face_detected"] = False
+                result["framing_anomaly"] = "FACE_NOT_FOUND"
 
         return result
 

@@ -91,7 +91,7 @@ bday2_45,data/raw/event_02_birthday/burst_02/DSC_4272.jpg,event_02_birthday,burs
 bday2_46,data/raw/event_02_birthday/burst_02/DSC_4273.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_47,data/raw/event_02_birthday/burst_02/DSC_4276.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_48,data/raw/event_02_birthday/burst_02/DSC_4278.jpg,event_02_birthday,burst_02,test,consented,Keep,None
-bday2_49,data/raw/event_02_birthday/burst_02/DSC_4280.jpg,event_02_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday2_49,data/raw/event_02_birthday/burst_02/DSC_4280.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_50,data/raw/event_02_birthday/burst_02/DSC_4281.jpg,event_02_birthday,burst_02,test,consented,Review,Head Cropped Out
 bday2_51,data/raw/event_02_birthday/burst_02/DSC_4282.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_52,data/raw/event_02_birthday/burst_02/DSC_4284.jpg,event_02_birthday,burst_02,test,consented,Keep,None
@@ -124,7 +124,7 @@ bday2_78,data/raw/event_02_birthday/burst_02/DSC_4325.jpg,event_02_birthday,burs
 bday2_79,data/raw/event_02_birthday/burst_02/DSC_4328.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_80,data/raw/event_02_birthday/burst_02/DSC_4329.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_81,data/raw/event_02_birthday/burst_02/DSC_4330.jpg,event_02_birthday,burst_02,test,consented,Keep,None
-bday2_82,data/raw/event_02_birthday/burst_02/DSC_4331.jpg,event_02_birthday,burst_02,test,consented,Review,Low Technical Quality
+bday2_82,data/raw/event_02_birthday/burst_02/DSC_4331.jpg,event_02_birthday,burst_02,test,consented,Review,Face Turned Away
 bday2_83,data/raw/event_02_birthday/burst_02/DSC_4333.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_84,data/raw/event_02_birthday/burst_02/DSC_4335.jpg,event_02_birthday,burst_02,test,consented,Keep,None
 bday2_85,data/raw/event_02_birthday/burst_02/DSC_4337.jpg,event_02_birthday,burst_02,test,consented,Keep,None
@@ -164,8 +164,8 @@ bday3_023,data/raw/event_03_birthday/burst_01/DSC_2828.jpg,event_03_birthday,bur
 bday3_024,data/raw/event_03_birthday/burst_01/DSC_2829.jpg,event_03_birthday,burst_01,test,consented,Keep,None
 bday3_025,data/raw/event_03_birthday/burst_01/DSC_2832.jpg,event_03_birthday,burst_01,test,consented,Keep,None
 bday3_026,data/raw/event_03_birthday/burst_01/DSC_2833.jpg,event_03_birthday,burst_01,test,consented,Keep,None
-bday3_027,data/raw/event_03_birthday/burst_01/DSC_2834.jpg,event_03_birthday,burst_01,test,consented,Keep,None
-bday3_028,data/raw/event_03_birthday/burst_01/DSC_2835.jpg,event_03_birthday,burst_01,test,consented,Keep,None
+bday3_027,data/raw/event_03_birthday/burst_01/DSC_2834.jpg,event_03_birthday,burst_01,test,consented,Review,Face Turned Away
+bday3_028,data/raw/event_03_birthday/burst_01/DSC_2835.jpg,event_03_birthday,burst_01,test,consented,Review,Face Turned Away
 bday3_029,data/raw/event_03_birthday/burst_01/DSC_2842.jpg,event_03_birthday,burst_01,test,consented,Keep,None
 bday3_030,data/raw/event_03_birthday/burst_01/DSC_2843.jpg,event_03_birthday,burst_01,test,consented,Keep,None
 bday3_031,data/raw/event_03_birthday/burst_01/DSC_2853.jpg,event_03_birthday,burst_01,test,consented,Keep,None
@@ -186,9 +186,9 @@ bday3_045,data/raw/event_03_birthday/burst_02/DSC_2756.jpg,event_03_birthday,bur
 bday3_046,data/raw/event_03_birthday/burst_02/DSC_2757.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_047,data/raw/event_03_birthday/burst_02/DSC_2758.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_048,data/raw/event_03_birthday/burst_02/DSC_2762.jpg,event_03_birthday,burst_02,test,consented,Keep,None
-bday3_049,data/raw/event_03_birthday/burst_02/DSC_2763.jpg,event_03_birthday,burst_02,test,consented,Review,Low Technical Quality
-bday3_050,data/raw/event_03_birthday/burst_02/DSC_2764.jpg,event_03_birthday,burst_02,test,consented,Review,Head Cropped Out
-bday3_051,data/raw/event_03_birthday/burst_02/DSC_2765.jpg,event_03_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday3_049,data/raw/event_03_birthday/burst_02/DSC_2763.jpg,event_03_birthday,burst_02,test,consented,Review,Face Turned Away
+bday3_050,data/raw/event_03_birthday/burst_02/DSC_2764.jpg,event_03_birthday,burst_02,test,consented,Keep,None
+bday3_051,data/raw/event_03_birthday/burst_02/DSC_2765.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_052,data/raw/event_03_birthday/burst_02/DSC_2766.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_053,data/raw/event_03_birthday/burst_02/DSC_2767.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_054,data/raw/event_03_birthday/burst_02/DSC_2768.jpg,event_03_birthday,burst_02,test,consented,Keep,None
@@ -225,9 +225,9 @@ bday3_084,data/raw/event_03_birthday/burst_02/DSC_2812.jpg,event_03_birthday,bur
 bday3_085,data/raw/event_03_birthday/burst_02/DSC_2814.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_086,data/raw/event_03_birthday/burst_02/DSC_2818.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_087,data/raw/event_03_birthday/burst_02/DSC_2831.jpg,event_03_birthday,burst_02,test,consented,Keep,None
-bday3_088,data/raw/event_03_birthday/burst_02/DSC_2836.jpg,event_03_birthday,burst_02,test,consented,Keep,None
-bday3_089,data/raw/event_03_birthday/burst_02/DSC_2837.jpg,event_03_birthday,burst_02,test,consented,Keep,None
-bday3_090,data/raw/event_03_birthday/burst_02/DSC_2838.jpg,event_03_birthday,burst_02,test,consented,Keep,None
+bday3_088,data/raw/event_03_birthday/burst_02/DSC_2836.jpg,event_03_birthday,burst_02,test,consented,Review,Face Turned Away
+bday3_089,data/raw/event_03_birthday/burst_02/DSC_2837.jpg,event_03_birthday,burst_02,test,consented,Review,Face Turned Away
+bday3_090,data/raw/event_03_birthday/burst_02/DSC_2838.jpg,event_03_birthday,burst_02,test,consented,Review,Face Turned Away
 bday3_091,data/raw/event_03_birthday/burst_02/DSC_2839.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_092,data/raw/event_03_birthday/burst_02/DSC_2840.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_093,data/raw/event_03_birthday/burst_02/DSC_2841.jpg,event_03_birthday,burst_02,test,consented,Keep,None
@@ -361,23 +361,23 @@ bday3_220,data/raw/event_03_birthday/burst_02/DSC_3004.jpg,event_03_birthday,bur
 bday3_221,data/raw/event_03_birthday/burst_02/DSC_3005.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_222,data/raw/event_03_birthday/burst_02/DSC_3006.jpg,event_03_birthday,burst_02,test,consented,Keep,None
 bday3_223,data/raw/event_03_birthday/burst_02/DSC_3007.jpg,event_03_birthday,burst_02,test,consented,Keep,None
-bday4_001,data/raw/event_04_birthday/burst_02/DSC_1266.jpg,event_04_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday4_001,data/raw/event_04_birthday/burst_02/DSC_1266.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_002,data/raw/event_04_birthday/burst_02/DSC_1273.jpg,event_04_birthday,burst_02,test,consented,Review,Motion Blur
 bday4_003,data/raw/event_04_birthday/burst_02/DSC_1276.jpg,event_04_birthday,burst_02,test,consented,Review,Motion Blur
 bday4_004,data/raw/event_04_birthday/burst_02/DSC_1284.jpg,event_04_birthday,burst_02,test,consented,Review,Motion Blur
 bday4_005,data/raw/event_04_birthday/burst_02/DSC_1285.jpg,event_04_birthday,burst_02,test,consented,Review,Low Technical Quality
 bday4_006,data/raw/event_04_birthday/burst_02/DSC_1286.jpg,event_04_birthday,burst_02,test,consented,Review,Low Technical Quality
-bday4_007,data/raw/event_04_birthday/burst_02/DSC_1287.jpg,event_04_birthday,burst_02,test,consented,Review,Low Technical Quality
-bday4_008,data/raw/event_04_birthday/burst_02/DSC_1288.jpg,event_04_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday4_007,data/raw/event_04_birthday/burst_02/DSC_1287.jpg,event_04_birthday,burst_02,test,consented,Review,Face Turned Away
+bday4_008,data/raw/event_04_birthday/burst_02/DSC_1288.jpg,event_04_birthday,burst_02,test,consented,Review,Low Technical Quality
 bday4_009,data/raw/event_04_birthday/burst_02/DSC_1292.jpg,event_04_birthday,burst_02,test,consented,Review,Motion Blur
-bday4_010,data/raw/event_04_birthday/burst_02/DSC_1299.jpg,event_04_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday4_010,data/raw/event_04_birthday/burst_02/DSC_1299.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_011,data/raw/event_04_birthday/burst_02/DSC_1310 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_012,data/raw/event_04_birthday/burst_02/DSC_1311 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_013,data/raw/event_04_birthday/burst_02/DSC_1313 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_014,data/raw/event_04_birthday/burst_02/DSC_1314 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_015,data/raw/event_04_birthday/burst_02/DSC_1315 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
 bday4_016,data/raw/event_04_birthday/burst_02/DSC_1317 B&W.jpg,event_04_birthday,burst_02,test,consented,Keep,None
-bday5_001,data/raw/event_05_birthday/burst_02/DSC_9435.jpg,event_05_birthday,burst_02,test,consented,Keep,None
+bday5_001,data/raw/event_05_birthday/burst_02/DSC_9435.jpg,event_05_birthday,burst_02,test,consented,Review,Face Turned Away
 bday5_002,data/raw/event_05_birthday/burst_02/DSC_9439.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_003,data/raw/event_05_birthday/burst_02/DSC_9440.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_004,data/raw/event_05_birthday/burst_02/DSC_9442.jpg,event_05_birthday,burst_02,test,consented,Keep,None
@@ -385,9 +385,9 @@ bday5_005,data/raw/event_05_birthday/burst_02/DSC_9443.jpg,event_05_birthday,bur
 bday5_006,data/raw/event_05_birthday/burst_02/DSC_9444.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_007,data/raw/event_05_birthday/burst_02/DSC_9446.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_008,data/raw/event_05_birthday/burst_02/DSC_9448.jpg,event_05_birthday,burst_02,test,consented,Keep,None
-bday5_009,data/raw/event_05_birthday/burst_02/DSC_9450.jpg,event_05_birthday,burst_02,test,consented,Keep,None
-bday5_010,data/raw/event_05_birthday/burst_02/DSC_9453.jpg,event_05_birthday,burst_02,test,consented,Review,Head Cropped Out
-bday5_011,data/raw/event_05_birthday/burst_02/DSC_9454.jpg,event_05_birthday,burst_02,test,consented,Review,Head Cropped Out
+bday5_009,data/raw/event_05_birthday/burst_02/DSC_9450.jpg,event_05_birthday,burst_02,test,consented,Review,Face Turned Away
+bday5_010,data/raw/event_05_birthday/burst_02/DSC_9453.jpg,event_05_birthday,burst_02,test,consented,Keep,None
+bday5_011,data/raw/event_05_birthday/burst_02/DSC_9454.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_012,data/raw/event_05_birthday/burst_02/DSC_9455.jpg,event_05_birthday,burst_02,test,consented,Review,Head Cropped Out
 bday5_013,data/raw/event_05_birthday/burst_02/DSC_9458.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_014,data/raw/event_05_birthday/burst_02/DSC_9460.jpg,event_05_birthday,burst_02,test,consented,Keep,None
@@ -427,9 +427,9 @@ bday5_047,data/raw/event_05_birthday/burst_02/DSC_9505.jpg,event_05_birthday,bur
 bday5_048,data/raw/event_05_birthday/burst_02/DSC_9507.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_049,data/raw/event_05_birthday/burst_02/DSC_9508.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_050,data/raw/event_05_birthday/burst_02/DSC_9509.jpg,event_05_birthday,burst_02,test,consented,Keep,None
-bday5_051,data/raw/event_05_birthday/burst_02/DSC_9510.jpg,event_05_birthday,burst_02,test,consented,Keep,None
-bday5_052,data/raw/event_05_birthday/burst_02/DSC_9511.jpg,event_05_birthday,burst_02,test,consented,Keep,None
-bday5_053,data/raw/event_05_birthday/burst_02/DSC_9515.jpg,event_05_birthday,burst_02,test,consented,Keep,None
+bday5_051,data/raw/event_05_birthday/burst_02/DSC_9510.jpg,event_05_birthday,burst_02,test,consented,Review,Face Turned Away
+bday5_052,data/raw/event_05_birthday/burst_02/DSC_9511.jpg,event_05_birthday,burst_02,test,consented,Review,Face Turned Away
+bday5_053,data/raw/event_05_birthday/burst_02/DSC_9515.jpg,event_05_birthday,burst_02,test,consented,Review,Face Turned Away
 bday5_054,data/raw/event_05_birthday/burst_02/DSC_9517.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_055,data/raw/event_05_birthday/burst_02/DSC_9518.jpg,event_05_birthday,burst_02,test,consented,Keep,None
 bday5_056,data/raw/event_05_birthday/burst_02/DSC_9519.jpg,event_05_birthday,burst_02,test,consented,Keep,None
