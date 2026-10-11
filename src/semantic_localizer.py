@@ -126,12 +126,16 @@ class SemanticLocalizer:
                 result["subject_confidence"] = float(person_scores[best_idx])
                 result["framing_anomaly"] = "NONE"
 
-        # Fallback: If no subject detector or no person found, assume center crop represents subject
+        # Fallback: still provide a crop region for feature extraction, but preserve
+        # the "no person detected" signal when the detector actually ran.
         if not result["subject_detected"]:
             # Center 60% of frame as default subject
             result["subject_bbox"] = [orig_w * 0.2, orig_h * 0.1, orig_w * 0.8, orig_h * 0.9]
             result["subject_confidence"] = 0.5
-            result["subject_detected"] = True
+            if self._subject_detector is None:
+                # Detector unavailable: assume a subject exists.
+                result["subject_detected"] = True
+            # else: leave subject_detected = False (no person detected)
 
         # 2. Check for Head / Face Cropping Anomaly
         subj_x1, subj_y1, subj_x2, subj_y2 = result["subject_bbox"]
@@ -184,6 +188,10 @@ class SemanticLocalizer:
             if is_upper_edge_cropped or (subj_y1 / orig_h < 0.01 and subj_h > 0.8 * orig_h):
                 result["face_detected"] = False
                 result["framing_anomaly"] = "HEAD_CROPPED"
+            elif not result["subject_detected"]:
+                # No person detected at all -> not a turned-away face; nothing to flag.
+                result["face_detected"] = False
+                result["framing_anomaly"] = "NO_SUBJECT"
             elif face_detector is None:
                 # No dedicated detector available: approximate the upper head region as the face.
                 head_y2 = subj_y1 + (subj_h * 0.28)
@@ -193,7 +201,7 @@ class SemanticLocalizer:
                 result["face_confidence"] = 0.7
                 result["face_detected"] = True
             else:
-                # Detector ran but found no confident face -> subject likely turned away.
+                # Detector ran, subject present, but no confident face -> turned away.
                 result["face_detected"] = False
                 result["framing_anomaly"] = "FACE_NOT_FOUND"
 

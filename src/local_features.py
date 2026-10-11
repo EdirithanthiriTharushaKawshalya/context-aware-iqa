@@ -71,6 +71,7 @@ class LocalFeatureExtractor:
         orig_w, orig_h = img.size
         framing_anomaly = localization.get("framing_anomaly", "NONE")
         has_face = localization.get("face_detected", False)
+        subject_present = localization.get("subject_detected", True)
         
         # 1. Subject Region Analysis
         subj_box = localization.get("subject_bbox")
@@ -116,9 +117,12 @@ class LocalFeatureExtractor:
         # Weighted combination of face sharpness (60%) and subject sharpness (40%)
         if has_face:
             local_score = 0.60 * norm_face_sharp + 0.40 * norm_subj_sharp
-        else:
-            # If face is missing or turned away, subject sharpness is discounted heavily
+        elif subject_present:
+            # Subject present but face missing/turned away: discount subject sharpness heavily.
             local_score = 0.30 * norm_subj_sharp
+        else:
+            # No subject at all (landscape/background): score on scene sharpness alone.
+            local_score = norm_subj_sharp
 
         # Penalty for motion blur
         if motion_metric > 0.45:

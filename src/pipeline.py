@@ -85,6 +85,7 @@ class Phase4Pipeline:
         s_global = float(global_feat["global_context_score"])
         framing_defect = bool(local_feat["framing_defect_detected"])
         has_face = bool(local_feat["face_present"])
+        subject_present = bool(loc.get("subject_detected", True))
         motion_metric = float(local_feat["motion_blur_metric"])
         framing_anomaly = loc.get("framing_anomaly", "NONE")
 
@@ -111,7 +112,7 @@ class Phase4Pipeline:
                 score_curr = capped_score
 
             # Anomaly Penalty 2: Turned away face / Face not visible in portrait
-            elif not has_face:
+            elif not has_face and subject_present:
                 discounted_score = score_curr * 0.60
                 face_penalty_pts = score_curr - discounted_score
                 score_curr = discounted_score
