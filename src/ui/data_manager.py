@@ -4,7 +4,7 @@ Dataset Manifest & Baseline Results Data Access Layer
 
 import csv
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 
 class DataManager:
@@ -44,20 +44,30 @@ class DataManager:
         return baselines
 
     @staticmethod
+    def get_event_options(rows: List[Dict[str, str]]) -> List[Tuple[str, int]]:
+        """Derives distinct event IDs (with photo counts) from manifest rows, in first-seen order."""
+        counts: Dict[str, int] = {}
+        order: List[str] = []
+        for row in rows:
+            event_id = (row.get("event_id") or "").strip()
+            if not event_id:
+                continue
+            if event_id not in counts:
+                counts[event_id] = 0
+                order.append(event_id)
+            counts[event_id] += 1
+        return [(event_id, counts[event_id]) for event_id in order]
+
+    @staticmethod
     def filter_manifest(
         rows: List[Dict[str, str]],
         filter_option: str,
         event_option: str = "All Events",
     ) -> List[Dict[str, str]]:
-        """Filters manifest rows by event and research defect scenario."""
+        """Filters manifest rows by event_id and research defect scenario."""
         filtered = rows
         if event_option != "All Events":
-            if "Event 01" in event_option:
-                filtered = [r for r in filtered if r.get("event_id") == "birthday_shoot"]
-            elif "Event 02" in event_option:
-                filtered = [r for r in filtered if r.get("event_id") == "event_02_birthday"]
-            elif "Event 03" in event_option:
-                filtered = [r for r in filtered if r.get("event_id") == "event_03_birthday"]
+            filtered = [r for r in filtered if r.get("event_id") == event_option]
 
         if filter_option == "Keep / Usable Portraits":
             return [r for r in filtered if r.get("expert_score_usability") == "Keep"]

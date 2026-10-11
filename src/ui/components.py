@@ -79,15 +79,20 @@ def render_sidebar_controls(
                             selected_image_path = str(project_root / r.get("file_path", ""))
                             break
 
-                # 2. Event & Category Filter Dropdowns
+                # 2. Event & Category Filter Dropdowns (derived dynamically from manifest)
+                event_options = DataManager.get_event_options(manifest_rows)
+                event_ids = ["All Events"] + [eid for eid, _ in event_options]
+                event_counts = {eid: count for eid, count in event_options}
+
+                def format_event_label(eid):
+                    if eid == "All Events":
+                        return f"All Events ({len(manifest_rows)} Photos)"
+                    return f"{eid.replace('_', ' ').title()} ({event_counts[eid]} photos)"
+
                 event_filter = st.selectbox(
                     "Filter Event:",
-                    [
-                        "All Events (362 Photos)",
-                        "Event 01: Birthday Outdoor (44 photos)",
-                        "Event 02: Birthday Session 2 (95 photos)",
-                        "Event 03: Birthday Session 3 (223 photos)",
-                    ],
+                    event_ids,
+                    format_func=format_event_label,
                     disabled=(active_jump is not None),
                 )
 
