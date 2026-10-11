@@ -83,9 +83,10 @@ def render_sidebar_controls(
                 event_filter = st.selectbox(
                     "Filter Event:",
                     [
-                        "All Events (139 Photos)",
+                        "All Events (362 Photos)",
                         "Event 01: Birthday Outdoor (44 photos)",
                         "Event 02: Birthday Session 2 (95 photos)",
+                        "Event 03: Birthday Session 3 (223 photos)",
                     ],
                     disabled=(active_jump is not None),
                 )

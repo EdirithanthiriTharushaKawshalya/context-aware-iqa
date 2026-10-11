@@ -56,6 +56,8 @@ class DataManager:
                 filtered = [r for r in filtered if r.get("event_id") == "birthday_shoot"]
             elif "Event 02" in event_option:
                 filtered = [r for r in filtered if r.get("event_id") == "event_02_birthday"]
+            elif "Event 03" in event_option:
+                filtered = [r for r in filtered if r.get("event_id") == "event_03_birthday"]
 
         if filter_option == "Keep / Usable Portraits":
             return [r for r in filtered if r.get("expert_score_usability") == "Keep"]
