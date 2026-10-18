@@ -1,0 +1,97 @@
+{
+  "name": "Baseline Metric (musiq_results.csv)",
+  "total_samples": 44,
+  "num_keep": 39,
+  "num_review": 5,
+  "accuracy": 0.9318,
+  "balanced_accuracy": 0.7,
+  "precision_keep": 0.9286,
+  "recall_keep": 1.0,
+  "f1_keep": 0.963,
+  "precision_review": 1.0,
+  "recall_review": 0.4,
+  "f1_review": 0.5714,
+  "macro_f1": 0.7672,
+  "specificity": 0.4,
+  "roc_auc": 0.9692,
+  "pr_auc": 0.9961,
+  "confusion_matrix": {
+    "TP": 39,
+    "FP": 3,
+    "TN": 2,
+    "FN": 0,
+    "Total": 44
+  },
+  "separation_margin": -2.5469,
+  "keep_score_mean": 69.3857,
+  "keep_score_std": 2.9954,
+  "keep_score_min": 62.7921,
+  "keep_score_max": 75.8806,
+  "review_score_mean": 49.1951,
+  "review_score_std": 17.1835,
+  "review_score_min": 22.9536,
+  "review_score_max": 65.339,
+  "defect_breakdown": {
+    "Motion Blur": {
+      "defect_name": "Motion Blur",
+      "total_count": 2,
+      "detected_as_review": 2,
+      "falsely_kept": 0,
+      "recall": 1.0,
+      "sample_ids": [
+        "bday_17",
+        "bday_18"
+      ]
+    },
+    "Face Turned Away": {
+      "defect_name": "Face Turned Away",
+      "total_count": 2,
+      "detected_as_review": 0,
+      "falsely_kept": 2,
+      "recall": 0.0,
+      "sample_ids": [
+        "bday_36",
+        "bday_37"
+      ]
+    },
+    "Head Cropped Out": {
+      "defect_name": "Head Cropped Out",
+      "total_count": 1,
+      "detected_as_review": 0,
+      "falsely_kept": 1,
+      "recall": 0.0,
+      "sample_ids": [
+        "bday_44"
+      ]
+    }
+  },
+  "mismatches": [
+    {
+      "image_id": "bday_36",
+      "file_path": "data/raw/event_01_birthday/burst_02/DSC_5183.jpg",
+      "ground_truth": "Review",
+      "predicted": "Keep",
+      "score": 60.18,
+      "defect_flag": "Face Turned Away",
+      "metadata": {}
+    },
+    {
+      "image_id": "bday_37",
+      "file_path": "data/raw/event_01_birthday/burst_02/DSC_5186.jpg",
+      "ground_truth": "Review",
+      "predicted": "Keep",
+      "score": 63.0,
+      "defect_flag": "Face Turned Away",
+      "metadata": {}
+    },
+    {
+      "image_id": "bday_44",
+      "file_path": "data/raw/event_01_birthday/burst_02/DSC_5216.jpg",
+      "ground_truth": "Review",
+      "predicted": "Keep",
+      "score": 65.34,
+      "defect_flag": "Head Cropped Out",
+      "metadata": {}
+    }
+  ]
+}

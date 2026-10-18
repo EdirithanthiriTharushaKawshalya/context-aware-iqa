@@ -18,10 +18,38 @@ from src.global_features import GlobalFeatureExtractor
 @dataclass
 class PipelineConfig:
     """Configuration hyperparameters for model fusion and decision logic."""
-    w_local: float = 0.65
-    w_global: float = 0.35
-    threshold: float = 55.0
+    w_local: float = 0.55
+    w_global: float = 0.45
+    threshold: float = 52.0
+    face_discount: float = 0.60
+    motion_thresh: float = 0.45
+    motion_scale: float = 45.0
+    framing_cap: float = 25.0
     ablation_mode: str = "full"  # "full", "local_only", "global_only", "no_penalty"
+
+    @classmethod
+    def from_tuned(cls, config_path: Optional[str] = None) -> "PipelineConfig":
+        """Loads optimal hyperparameters from tuned_config.json if available."""
+        import json
+        from pathlib import Path
+        p = Path(config_path) if config_path else Path(__file__).resolve().parent.parent / "configs" / "tuned_config.json"
+        if p.is_file():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                best = data.get("best_config", {})
+                return cls(
+                    w_local=float(best.get("w_local", 0.55)),
+                    w_global=float(best.get("w_global", 0.45)),
+                    threshold=float(best.get("threshold", 52.0)),
+                    face_discount=float(best.get("face_discount", 0.60)),
+                    motion_thresh=float(best.get("motion_thresh", 0.45)),
+                    motion_scale=float(best.get("motion_scale", 45.0)),
+                    framing_cap=float(best.get("framing_cap", 25.0)),
+                )
+            except Exception:
+                pass
+        return cls()
 
 
 @dataclass
@@ -67,7 +95,7 @@ class Phase4Pipeline:
         Executes complete Phase 4 assessment on a PIL image.
         """
         if config is None:
-            config = PipelineConfig()
+            config = PipelineConfig.from_tuned()
 
         rgb_img = img.convert("RGB")
 
@@ -88,6 +116,7 @@ class Phase4Pipeline:
         subject_present = bool(loc.get("subject_detected", True))
         motion_metric = float(local_feat["motion_blur_metric"])
         framing_anomaly = loc.get("framing_anomaly", "NONE")
+        face_orientation = loc.get("face_orientation", "FRONTAL" if has_face else "TURNED_AWAY")
 
         base_score = (config.w_local * s_local) + (config.w_global * s_global)
 
@@ -107,19 +136,29 @@ class Phase4Pipeline:
 
             # Anomaly Penalty 1: Head/Face cropped out
             if framing_defect or framing_anomaly == "HEAD_CROPPED":
-                capped_score = min(score_curr * 0.35, 25.0)
+                capped_score = min(score_curr * 0.35, config.framing_cap)
                 framing_penalty_pts = score_curr - capped_score
                 score_curr = capped_score
 
-            # Anomaly Penalty 2: Turned away face / Face not visible in portrait
+            # Anomaly Penalty 2: Face Orientation & Turned Away
+            elif face_orientation == "TURNED_AWAY" and subject_present:
+                discounted_score = score_curr * config.face_discount
+                face_penalty_pts = score_curr - discounted_score
+                score_curr = discounted_score
+            elif face_orientation == "PROFILE" and subject_present:
+                # Gentle continuous penalty for extreme angle: 40% of full discount
+                profile_mult = 1.0 - (1.0 - config.face_discount) * 0.40
+                discounted_score = score_curr * profile_mult
+                face_penalty_pts = score_curr - discounted_score
+                score_curr = discounted_score
             elif not has_face and subject_present:
-                discounted_score = score_curr * 0.60
+                discounted_score = score_curr * config.face_discount
                 face_penalty_pts = score_curr - discounted_score
                 score_curr = discounted_score
 
             # Anomaly Penalty 3: Severe motion blur
-            if motion_metric > 0.45:
-                motion_penalty = (motion_metric - 0.45) * 45.0
+            if motion_metric > config.motion_thresh:
+                motion_penalty = (motion_metric - config.motion_thresh) * config.motion_scale
                 motion_penalty_pts = motion_penalty
                 score_curr -= motion_penalty
 

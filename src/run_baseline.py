@@ -171,31 +171,39 @@ def load_manifest(manifest_path: str) -> List[Dict[str, str]]:
 def evaluate_image(
     metric: Any,
     backend: str,
-    full_img_path: str
+    full_img_path: str,
+    device: Any = "cpu"
 ) -> Tuple[Optional[float], str, str]:
     """
-    Evaluate quality of a single image while preserving its aspect ratio.
+    Evaluate quality of a single image while strictly preserving its aspect ratio.
     Returns: (predicted_score, status, error_message)
     """
     if not os.path.isfile(full_img_path):
         return None, "FILE_NOT_FOUND", f"File does not exist: {full_img_path}"
 
     try:
-        # Verify file is readable as an image
-        if Image is not None:
-            with Image.open(full_img_path) as test_img:
-                test_img.verify()
-
-        start_t = time.time()
-        
         if backend == "pyiqa":
-            # PyIQA metrics can directly take the file path and handle aspect ratio natively
-            # (MUSIQ, BRISQUE, NIQE, etc. operate on full scale or aspect-ratio preserved patches)
-            score_tensor = metric(full_img_path)
-            if hasattr(score_tensor, "item"):
-                score = float(score_tensor.item())
-            else:
-                score = float(score_tensor)
+            # For high-res camera originals (e.g. 6000x4000), resize preserving exact aspect ratio
+            # with max_dim=1024 to avoid CPU memory exhaustion while preserving perceptual features.
+            import torchvision.transforms.functional as TF
+            with Image.open(full_img_path) as img:
+                rgb = img.convert("RGB")
+                w, h = rgb.size
+                max_d = 1024
+                if max(w, h) > max_d:
+                    scale = max_d / max(w, h)
+                    rgb = rgb.resize((int(w * scale), int(h * scale)), Image.Resampling.BILINEAR)
+                tensor = TF.to_tensor(rgb).unsqueeze(0)
+                if hasattr(device, "type") or isinstance(device, str):
+                    try:
+                        tensor = tensor.to(device)
+                    except Exception:
+                        pass
+                score_tensor = metric(tensor)
+                if hasattr(score_tensor, "item"):
+                    score = float(score_tensor.item())
+                else:
+                    score = float(score_tensor)
         else:
             score = metric(full_img_path)
 
@@ -243,7 +251,7 @@ def run_baseline_pipeline():
         # Handle relative path with respect to project root
         full_path = (PROJECT_ROOT / rel_path).resolve() if not os.path.isabs(rel_path) else Path(rel_path)
 
-        score, status, err = evaluate_image(metric, backend, str(full_path))
+        score, status, err = evaluate_image(metric, backend, str(full_path), device=device)
 
         # Copy all original manifest columns and append predictions
         out_row = dict(row)

@@ -114,9 +114,18 @@ class LocalFeatureExtractor:
         norm_subj_sharp = float(np.clip(np.log1p(subj_sharpness) * 11.0, 0.0, 100.0))
         norm_face_sharp = float(np.clip(np.log1p(face_sharpness) * 12.0, 0.0, 100.0)) if has_face else 0.0
         
-        # Weighted combination of face sharpness (60%) and subject sharpness (40%)
+        face_orientation = localization.get("face_orientation", "FRONTAL" if has_face else "TURNED_AWAY")
+        face_yaw_deg = localization.get("face_yaw_deg", 0.0)
+        face_yaw_asym = localization.get("face_yaw_asymmetry", 0.0)
+
+        # Weighted combination of face sharpness and subject sharpness
         if has_face:
-            local_score = 0.60 * norm_face_sharp + 0.40 * norm_subj_sharp
+            if face_orientation == "PROFILE":
+                # Semi-turned profile: slight adjustment
+                local_score = 0.50 * norm_face_sharp + 0.50 * norm_subj_sharp
+            else:
+                # FRONTAL or SEMI_PROFILE (natural portrait): standard 60/40 weighting
+                local_score = 0.60 * norm_face_sharp + 0.40 * norm_subj_sharp
         elif subject_present:
             # Subject present but face missing/turned away: discount subject sharpness heavily.
             local_score = 0.30 * norm_subj_sharp
@@ -145,5 +154,8 @@ class LocalFeatureExtractor:
             "motion_blur_metric": round(motion_metric, 4),
             "framing_defect_detected": framing_defect,
             "face_present": has_face,
+            "face_orientation": face_orientation,
+            "face_yaw_deg": face_yaw_deg,
+            "face_yaw_asymmetry": face_yaw_asym,
             "local_technical_score": round(local_score, 4),
         }

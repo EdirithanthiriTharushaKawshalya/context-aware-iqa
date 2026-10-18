@@ -72,8 +72,9 @@ def test_ablation_modes(dummy_rgb_image):
     res_global = pipeline.run(dummy_rgb_image, PipelineConfig(ablation_mode="global_only"))
     assert res_global.unified_score == res_global.s_global
 
-    res_no_pen = pipeline.run(dummy_rgb_image, PipelineConfig(ablation_mode="no_penalty"))
-    expected_base = round((0.65 * res_no_pen.s_local) + (0.35 * res_no_pen.s_global), 2)
+    cfg_no_pen = PipelineConfig(ablation_mode="no_penalty", w_local=0.65, w_global=0.35)
+    res_no_pen = pipeline.run(dummy_rgb_image, cfg_no_pen)
+    expected_base = round((cfg_no_pen.w_local * res_no_pen.s_local) + (cfg_no_pen.w_global * res_no_pen.s_global), 2)
     assert abs(res_no_pen.unified_score - expected_base) < 0.1
 
 

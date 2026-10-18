@@ -91,6 +91,10 @@ class SemanticLocalizer:
             "face_detected": False,
             "face_bbox": None,
             "face_confidence": 0.0,
+            "face_landmarks": None,
+            "face_yaw_asymmetry": 0.0,
+            "face_yaw_deg": 0.0,
+            "face_orientation": "NO_SUBJECT",
             "framing_anomaly": "NO_SUBJECT",
             "image_size": (orig_w, orig_h),
         }
@@ -178,6 +182,39 @@ class SemanticLocalizer:
                         ]
                         result["face_confidence"] = float(best_face[4])
                         face_found = True
+
+                        # Extract 5 facial landmarks and estimate yaw pose orientation
+                        if len(best_face) >= 15:
+                            lex, ley = float(best_face[5] / scale), float(best_face[6] / scale)
+                            rex, rey = float(best_face[7] / scale), float(best_face[8] / scale)
+                            nx, ny = float(best_face[9] / scale), float(best_face[10] / scale)
+                            lmx, lmy = float(best_face[11] / scale), float(best_face[12] / scale)
+                            rmx, rmy = float(best_face[13] / scale), float(best_face[14] / scale)
+
+                            result["face_landmarks"] = {
+                                "left_eye": [lex, ley],
+                                "right_eye": [rex, rey],
+                                "nose": [nx, ny],
+                                "left_mouth": [lmx, lmy],
+                                "right_mouth": [rmx, rmy],
+                            }
+
+                            dl = abs(nx - lex)
+                            dr = abs(nx - rex)
+                            yaw_asym = float(abs(dl - dr) / (dl + dr + 1e-6))
+                            yaw_deg = float(np.clip(yaw_asym * 90.0, 0.0, 90.0))
+
+                            result["face_yaw_asymmetry"] = round(yaw_asym, 4)
+                            result["face_yaw_deg"] = round(yaw_deg, 2)
+
+                            if yaw_deg < 25.0:
+                                result["face_orientation"] = "FRONTAL"
+                            elif yaw_deg < 50.0:
+                                result["face_orientation"] = "SEMI_PROFILE"
+                            elif yaw_deg < 70.0:
+                                result["face_orientation"] = "PROFILE"
+                            else:
+                                result["face_orientation"] = "TURNED_AWAY"
             except Exception:
                 face_found = False
 
@@ -188,10 +225,16 @@ class SemanticLocalizer:
             if is_upper_edge_cropped or (subj_y1 / orig_h < 0.01 and subj_h > 0.8 * orig_h):
                 result["face_detected"] = False
                 result["framing_anomaly"] = "HEAD_CROPPED"
+                result["face_orientation"] = "HEAD_CROPPED"
+                result["face_yaw_asymmetry"] = 1.0
+                result["face_yaw_deg"] = 90.0
             elif not result["subject_detected"]:
                 # No person detected at all -> not a turned-away face; nothing to flag.
                 result["face_detected"] = False
                 result["framing_anomaly"] = "NO_SUBJECT"
+                result["face_orientation"] = "NO_SUBJECT"
+                result["face_yaw_asymmetry"] = 0.0
+                result["face_yaw_deg"] = 0.0
             elif face_detector is None:
                 # No dedicated detector available: approximate the upper head region as the face.
                 head_y2 = subj_y1 + (subj_h * 0.28)
@@ -200,10 +243,16 @@ class SemanticLocalizer:
                 result["face_bbox"] = [head_x1, subj_y1, head_x2, head_y2]
                 result["face_confidence"] = 0.7
                 result["face_detected"] = True
+                result["face_orientation"] = "FRONTAL_ESTIMATED"
+                result["face_yaw_asymmetry"] = 0.0
+                result["face_yaw_deg"] = 0.0
             else:
                 # Detector ran, subject present, but no confident face -> turned away.
                 result["face_detected"] = False
                 result["framing_anomaly"] = "FACE_NOT_FOUND"
+                result["face_orientation"] = "TURNED_AWAY"
+                result["face_yaw_asymmetry"] = 1.0
+                result["face_yaw_deg"] = 90.0
 
         return result
 
