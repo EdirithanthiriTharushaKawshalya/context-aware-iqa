@@ -40,3 +40,15 @@ data/raw/event_11*
 data/raw/event_12*
 data/raw/*.zip
 data/raw/*.tar.gz
+
+# Desktop build outputs and private photo-selection projects
+build/
+dist/
+*.iqa.json
+*.iqa.json.tmp
+outputs/desktop-test-temp/
+outputs/desktop-pause-tests*/
+outputs/desktop-cleanup-tests*/
+outputs/recycle-integration*/
+outputs/desktop-progress-tests*/
+outputs/desktop-workflow-tests*/

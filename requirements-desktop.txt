@@ -1,0 +1,9 @@
+# Install into the same environment as the research pipeline.
+Pillow>=10
+numpy>=1.26
+torch>=2.2
+torchvision>=0.17
+send2trash[nativeLib]>=2.1; sys_platform == 'win32'
+# Optional face evidence: facexlib (the pipeline handles its absence).
+# Build tool, needed only to produce a standalone Windows application:
+pyinstaller>=6
