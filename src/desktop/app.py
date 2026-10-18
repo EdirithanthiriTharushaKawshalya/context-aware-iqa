@@ -34,8 +34,8 @@ class DesktopApp:
         self.cleaning = False
         self.cleanup_stop = threading.Event()
         self.cleanup_events = queue.Queue()
-        root.title('Context-Aware IQA 0.3.0 — Photo Selection')
-        root.geometry('1250x820')
+        root.title('Context Aware IQA — Photo Review')
+        root.geometry('1400x960')
         root.protocol('WM_DELETE_WINDOW', self.close)
         self.source = tk.StringVar()
         self.target = tk.StringVar(value='')
@@ -58,73 +58,23 @@ class DesktopApp:
         self.project_menu.add_separator()
         self.project_menu.add_command(label='Exit', command=self.close)
         menu.add_cascade(label='Project', menu=self.project_menu)
+        help_menu = tk.Menu(menu, tearoff=False)
+        help_menu.add_command(label='Quick start introduction…', command=self.introduction)
+        menu.add_cascade(label='Help', menu=help_menu)
         root.configure(menu=menu)
-        ttk.Label(root, textvariable=self.workflow, padding=8).pack(fill='x', padx=8)
-        setup = ttk.LabelFrame(root, text='Folder & preferences', padding=10)
-        setup.pack(fill='x', padx=12, pady=8)
-        ttk.Entry(setup, textvariable=self.source, width=75, state='readonly').grid(row=0, column=0, columnspan=5, sticky='ew')
-        self.folder_button = ttk.Button(setup, text='Choose folder…', command=self.choose_folder)
-        self.folder_button.grid(row=0, column=5, padx=6)
-        self.recursive_control = ttk.Checkbutton(setup, text='Include subfolders', variable=self.recursive, command=self.configuration_changed)
-        self.recursive_control.grid(row=1, column=0)
-        ttk.Label(setup, text='Final count (optional)').grid(row=1, column=1)
-        self.count_control = ttk.Entry(setup, textvariable=self.target, width=8)
-        self.count_control.grid(row=1, column=2)
-        ttk.Label(setup, textvariable=self.selection_hint, wraplength=350).grid(row=1, column=3, columnspan=3)
-        ttk.Label(setup, text='Shot intent').grid(row=2, column=0)
-        self.shot_control = ttk.Combobox(setup, textvariable=self.shot, state='readonly', values=('auto', 'portrait', 'couple', 'group', 'candid', 'detail', 'scene'), width=15)
-        self.shot_control.grid(row=2, column=1)
-        self.shot_control.bind('<<ComboboxSelected>>', self.configuration_changed)
-        ttk.Label(setup, text='Motion intent').grid(row=2, column=2)
-        self.motion_control = ttk.Combobox(setup, textvariable=self.motion, state='readonly', values=('auto', 'freeze', 'intentional'), width=15)
-        self.motion_control.grid(row=2, column=3)
-        self.motion_control.bind('<<ComboboxSelected>>', self.configuration_changed)
-        self.style_control = ttk.Combobox(setup, textvariable=self.style, state='readonly', values=('Balanced', 'Strict quality'), width=17)
-        self.style_control.grid(row=2, column=4)
-        toolbar = ttk.Frame(root, padding=8)
-        toolbar.pack(fill='x')
-        self.action_buttons = {}
-        for name, label, action in [('analyze', 'Analyze photos', self.analyze), ('pause', 'Pause', self.pause), ('cleanup', 'Review cleanup', self.cleanup), ('finish', 'Finish project…', self.finish)]:
-            button = ttk.Button(toolbar, text=label, command=action)
-            button.pack(side='right' if name == 'finish' else 'left', padx=3)
-            self.action_buttons[name] = button
-        ttk.Label(root, textvariable=self.status, wraplength=1180).pack(fill='x', padx=15)
-        self.bar = ttk.Progressbar(root)
-        self.bar.pack(fill='x', padx=15, pady=6)
-        body = ttk.Panedwindow(root, orient='horizontal')
-        body.pack(fill='both', expand=True, padx=12, pady=8)
-        left, right = ttk.Frame(body), ttk.Frame(body)
-        body.add(left, weight=3)
-        body.add(right, weight=2)
-        filters = ttk.Combobox(left, textvariable=self.view, state='readonly', values=('All', 'Keep', 'Review', 'Final selection', 'Other Keep', 'Pending', 'Marked for removal', 'Recycled'))
-        filters.pack(fill='x')
-        filters.bind('<<ComboboxSelected>>', lambda _: self.refresh())
-        self.table = ttk.Treeview(left, columns=('decision', 'score', 'pin'), selectmode='browse')
-        for col, text, width in [('#0', 'Photo', 300), ('decision', 'Decision', 120), ('score', 'Score', 60), ('pin', 'Protected', 90)]:
-            self.table.heading(col, text=text)
-            self.table.column(col, width=width)
-        scroll = ttk.Scrollbar(left, orient='vertical', command=self.table.yview)
-        self.table.configure(yscrollcommand=scroll.set)
-        scroll.pack(side='right', fill='y')
-        self.table.pack(fill='both', expand=True)
-        self.table.bind('<<TreeviewSelect>>', self.preview)
-        self.preview_label = ttk.Label(right, anchor='center')
-        self.preview_label.pack(fill='both', expand=True)
-        self.details = tk.StringVar(value='Choose a photo to inspect its assessment.')
-        ttk.Label(right, textvariable=self.details, wraplength=430).pack(fill='x', pady=8)
-        actions = ttk.Frame(right)
-        actions.pack(fill='x')
-        for label, decision in [('Keep', 'Keep'), ('Review', 'Review'), ('Mark removal', 'Excluded'), ('Reset', '')]:
-            ttk.Button(actions, text=label, command=lambda d=decision: self.decide(d)).pack(side='left')
-        self.protection_control = ttk.Checkbutton(right, text='Protect this photo — always include it', variable=self.protected, command=self.pin)
-        self.protection_control.pack(pady=5)
-        ttk.Label(right, text='For essential moments: kept in a limited selection and protected from cleanup.', wraplength=430).pack()
-        ttk.Button(right, text='Inspect at 100% (scroll to pan)', command=self.zoom).pack(pady=5)
-        ttk.Label(root, text='Only confirmed files go to the Recycle Bin. Finish project saves your review; automatic recovery protects work in progress.', padding=8).pack()
+        from .interface import build
+        build(self)
         self.target.trace_add('write', self.schedule_preferences)
         self.style.trace_add('write', self.schedule_preferences)
         self.sync_controls()
         root.after(150, self.poll)
+
+    def introduction(self):
+        from .welcome import Introduction
+        if getattr(self, 'tour', None) and self.tour.window.winfo_exists():
+            self.tour.window.lift()
+        else:
+            self.tour = Introduction(self.root)
 
     def idle(self):
         if self.busy:
@@ -320,6 +270,8 @@ class DesktopApp:
         for index in (3, 4):
             self.project_menu.entryconfigure(index, state='normal' if ready else 'disabled')
         photo = self.current() if self.project else None
+        for button in self.photo_buttons:
+            button.configure(state='normal' if ready and photo and not photo.recycled else 'disabled')
         self.protected.set(bool(photo and photo.must_include))
         self.protection_control.configure(state='normal' if ready and photo and photo.decision == 'Keep' else 'disabled')
         if not self.project:
@@ -466,6 +418,8 @@ class DesktopApp:
             issue = ''
         except ValueError as exc:
             chosen, issue = set(), str(exc)
+        for name, value in [('Photos', sum(not p.recycled for p in self.project.photos)), ('Keep', sum(p.decision == 'Keep' for p in self.project.photos)), ('Review', sum(p.decision in ('Review', 'Error', 'Unsupported') for p in self.project.photos)), ('Selected', len(chosen))]:
+            self.metrics[name].set(str(value))
         previous = self.table.selection()
         desired = []
         keeps = sum(p.decision == 'Keep' for p in self.project.photos)
@@ -484,9 +438,9 @@ class DesktopApp:
                 score = f'{photo.score:.1f}' if photo.status in ('Keep', 'Review') else '—'
                 values = (decision, score, 'Yes' if photo.must_include else 'No')
                 if self.table.exists(iid):
-                    self.table.item(iid, text=photo.relative, values=values)
+                    self.table.item(iid, text=photo.relative, values=values, tags=(photo.decision,))
                 else:
-                    self.table.insert('', 'end', iid=iid, text=photo.relative, values=values)
+                    self.table.insert('', 'end', iid=iid, text=photo.relative, values=values, tags=(photo.decision,))
         desired_set = set(desired)
         for iid in self.table.get_children():
             if iid not in desired_set:
@@ -533,7 +487,7 @@ class DesktopApp:
         try:
             with Image.open(self.project.path_for(photo)) as original:
                 image = ImageOps.exif_transpose(original).convert('RGB')
-                image.thumbnail((470, 450))
+                image.thumbnail((max(32, self.preview_label.winfo_width() - 16), max(32, self.preview_label.winfo_height() - 16)))
             self.preview_image = ImageTk.PhotoImage(image)
             self.preview_label.configure(image=self.preview_image, text='')
         except Exception as exc:
@@ -828,11 +782,11 @@ class DesktopApp:
             messagebox.showerror('Open photo folder', str(exc))
 
 
-def main(smoke_test=False):
-    root = tk.Tk()
-    if smoke_test:
-        root.withdraw()
-    DesktopApp(root)
+def main(smoke_test=False, root=None, splash=None):
+    root = root or tk.Tk()
+    root.withdraw()
+    app = DesktopApp(root)
+    root.update_idletasks()
     if smoke_test:
         from src.pipeline import PipelineConfig
         PipelineConfig()
@@ -862,4 +816,10 @@ def main(smoke_test=False):
         root.update()
         root.destroy()
         return
+    from .welcome import Preferences
+    from .startup import show_workspace
+    def ready():
+        if not Preferences().completed():
+            root.after(200, app.introduction)
+    show_workspace(root, splash, ready)
     root.mainloop()

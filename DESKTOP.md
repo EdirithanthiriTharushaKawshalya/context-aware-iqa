@@ -1,8 +1,29 @@
-# Desktop photo selection (MVP)
+# Context Aware IQA — Desktop photo selection
 
 The native desktop application is separate from `app.py` and `src/ui/`.
-The existing Streamlit website and research workflow are unchanged. Both
+The Streamlit website retains its existing layout and research workflow, with
+the shared Context Aware IQA name and logo. Both
 interfaces reuse `src.pipeline.Phase4Pipeline`.
+
+Version 0.4.0 introduces a violet-accented desktop workspace, live collection
+counts, colored review decisions, contextual help, and a dark photo viewer.
+The shared logo stays in `src/images/icon.png`; `icon.ico` supplies Windows
+executable and installer icons. The native presentation layer lives in
+`src/desktop/interface.py`, separate from assessment and project persistence.
+
+Version 0.5.1 keeps the startup splash visible for at least five seconds. This
+includes time spent preparing the workspace; slower startups add no extra wait.
+
+Version 0.5.0 adds a branded startup splash and a four-card introduction on
+first launch. Next, Back, Skip, and Get started are available; completing or
+skipping the guide is remembered per Windows user. Replay it from
+**Help → Quick start introduction**. Preferences live beside Sessions in
+`%LOCALAPPDATA%/ContextAwareIQA/preferences.json`.
+
+The desktop uses rounded sections, pill buttons, softened dropdown fields and
+progress indicators. Photo inspection has a light background with the
+assessment beside the image, without cropping the photo. The installer writes
+an explicit logo icon for both desktop and Start menu shortcuts.
 
 ## Run
 

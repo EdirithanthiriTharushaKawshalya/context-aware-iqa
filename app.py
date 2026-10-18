@@ -28,7 +28,8 @@ from src.ui.components import (
 # Application Setup & Resource Caching
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Context-Aware IQA | Research Demonstrator",
+    page_title="Context Aware IQA",
+    page_icon=str(PROJECT_ROOT / "src/images/icon.png"),
     layout="wide",
     initial_sidebar_state="expanded",
 )

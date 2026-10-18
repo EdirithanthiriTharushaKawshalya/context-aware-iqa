@@ -5,7 +5,7 @@ a = Analysis(
     ['desktop_app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('src/images/icon.png', 'src/images')],
     hiddenimports=collect_submodules('torchvision'),
     hookspath=[],
     runtime_hooks=[],
@@ -16,5 +16,5 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True,
-          name='ContextAwareIQA', debug=False, strip=False, upx=False, console=False)
+          name='ContextAwareIQA', icon='src/images/icon.ico', debug=False, strip=False, upx=False, console=False)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='ContextAwareIQA')

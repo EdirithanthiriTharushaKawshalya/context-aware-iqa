@@ -397,11 +397,17 @@ hr {
 # ---------------------------------------------------------------------------
 
 def render_html_header() -> str:
-    return """
+    import base64
+    from pathlib import Path
+    logo = base64.b64encode((Path(__file__).resolve().parents[1] / "images/icon.png").read_bytes()).decode("ascii")
+    return f"""
     <div class="top-navbar">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <img src="data:image/png;base64,{logo}" alt="Context Aware IQA logo" style="width:44px;height:34px;object-fit:contain;">
         <div class="nav-brand">
-            <span class="nav-title">Context-Aware Image Quality Assessment</span>
+            <span class="nav-title">Context Aware IQA</span>
             <span class="nav-subtitle">Phase 4 Multimodal Fusion Pipeline</span>
+        </div>
         </div>
         <div class="nav-badge">
             <span class="nav-status-dot"></span>

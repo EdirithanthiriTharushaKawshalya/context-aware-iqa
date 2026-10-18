@@ -52,3 +52,4 @@ outputs/desktop-cleanup-tests*/
 outputs/recycle-integration*/
 outputs/desktop-progress-tests*/
 outputs/desktop-workflow-tests*/
+outputs/desktop-ui-preview*
