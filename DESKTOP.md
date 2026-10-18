@@ -11,6 +11,10 @@ The shared logo stays in `src/images/icon.png`; `icon.ico` supplies Windows
 executable and installer icons. The native presentation layer lives in
 `src/desktop/interface.py`, separate from assessment and project persistence.
 
+Version 0.5.2 rounds the actual splash window and shows a product description
+with startup messages for loading components, reading preferences, preparing
+controls, and applying the layout. Messages correspond to actual startup tasks.
+
 Version 0.5.1 keeps the startup splash visible for at least five seconds. This
 includes time spent preparing the workspace; slower startups add no extra wait.
 

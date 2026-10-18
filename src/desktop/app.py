@@ -785,9 +785,9 @@ class DesktopApp:
 def main(smoke_test=False, root=None, splash=None):
     root = root or tk.Tk()
     root.withdraw()
-    app = DesktopApp(root)
-    root.update_idletasks()
     if smoke_test:
+        DesktopApp(root)
+        root.update_idletasks()
         from src.pipeline import PipelineConfig
         PipelineConfig()
         import sys
@@ -817,9 +817,23 @@ def main(smoke_test=False, root=None, splash=None):
         root.destroy()
         return
     from .welcome import Preferences
-    from .startup import show_workspace
+    from .startup import prepare_workspace, show_workspace
+    startup = {}
+    def read_preferences():
+        startup['introduction'] = not Preferences().completed()
+    def build_workspace():
+        startup['app'] = DesktopApp(root)
     def ready():
-        if not Preferences().completed():
-            root.after(200, app.introduction)
-    show_workspace(root, splash, ready)
+        if startup['introduction']:
+            root.after(200, startup['app'].introduction)
+    def failed(exc):
+        startup['error'] = exc
+        root.quit()
+    prepare_workspace(root, splash, [
+        ('Reading your preferences…', 25, read_preferences),
+        ('Preparing review controls…', 55, build_workspace),
+        ('Applying workspace layout…', 85, root.update_idletasks),
+    ], lambda: show_workspace(root, splash, ready), failed)
     root.mainloop()
+    if 'error' in startup:
+        raise startup['error']
