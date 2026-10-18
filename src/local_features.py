@@ -25,6 +25,8 @@ class LocalFeatureExtractor:
 
     def _calc_tenengrad(self, gray_np: np.ndarray) -> float:
         """Computes Tenengrad gradient energy (Sobel-based sharpness indicator)."""
+        if min(gray_np.shape) < 2:
+            return 0.0
         gx = np.gradient(gray_np.astype(np.float32), axis=1)
         gy = np.gradient(gray_np.astype(np.float32), axis=0)
         grad_norm = gx**2 + gy**2
@@ -33,6 +35,8 @@ class LocalFeatureExtractor:
     def _calc_laplacian_var(self, gray_pil: Image.Image) -> float:
         """Computes variance of Laplacian using Pillow filter."""
         edges = gray_pil.filter(ImageFilter.FIND_EDGES)
+        if min(edges.size) > 2:
+            edges = edges.crop((1, 1, edges.width-1, edges.height-1))
         stat = ImageStat.Stat(edges)
         return float(stat.var[0]) if stat.var else 0.0
 
@@ -41,6 +45,8 @@ class LocalFeatureExtractor:
         Estimates motion blur severity by measuring anisotropy of gradients
         (motion blur causes elongated gradients along one axis and suppressed gradients along the blur axis).
         """
+        if min(gray_np.shape) < 2:
+            return 0.0
         gx = np.gradient(gray_np.astype(np.float32), axis=1)
         gy = np.gradient(gray_np.astype(np.float32), axis=0)
         var_x = float(np.var(gx))
@@ -68,6 +74,8 @@ class LocalFeatureExtractor:
             - 'framing_defect_detected': bool
             - 'local_technical_score': float (0-100 scale)
         """
+        if "subjects" in localization:
+            return self._extract_multi(img, localization)
         orig_w, orig_h = img.size
         framing_anomaly = localization.get("framing_anomaly", "NONE")
         has_face = localization.get("face_detected", False)
@@ -79,7 +87,7 @@ class LocalFeatureExtractor:
             sx1, sy1, sx2, sy2 = [int(round(c)) for c in subj_box]
             sx1, sy1 = max(0, sx1), max(0, sy1)
             sx2, sy2 = min(orig_w, sx2), min(orig_h, sy2)
-            subj_crop = img.crop((sx1, sy1, sx2, sy2))
+            subj_crop = img.crop((sx1, sy1, sx2, sy2)) if sx2 > sx1 and sy2 > sy1 else img
         else:
             subj_crop = img
 
@@ -95,7 +103,7 @@ class LocalFeatureExtractor:
             fx1, fy1, fx2, fy2 = [int(round(c)) for c in face_box]
             fx1, fy1 = max(0, fx1), max(0, fy1)
             fx2, fy2 = min(orig_w, fx2), min(orig_h, fy2)
-            face_crop = img.crop((fx1, fy1, fx2, fy2))
+            face_crop = img.crop((fx1, fy1, fx2, fy2)) if fx2 > fx1 and fy2 > fy1 else subj_crop
             face_gray = face_crop.convert("L")
             face_sharpness = self._calc_laplacian_var(face_gray)
             face_tenengrad = self._calc_tenengrad(np.array(face_gray))
@@ -127,22 +135,14 @@ class LocalFeatureExtractor:
                 # FRONTAL or SEMI_PROFILE (natural portrait): standard 60/40 weighting
                 local_score = 0.60 * norm_face_sharp + 0.40 * norm_subj_sharp
         elif subject_present:
-            # Subject present but face missing/turned away: discount subject sharpness heavily.
-            local_score = 0.30 * norm_subj_sharp
+            # Missing face evidence does not establish a quality defect.
+            local_score = norm_subj_sharp
         else:
             # No subject at all (landscape/background): score on scene sharpness alone.
             local_score = norm_subj_sharp
 
-        # Penalty for motion blur
-        if motion_metric > 0.45:
-            # Scale penalty according to blur severity
-            blur_penalty = float(np.clip((motion_metric - 0.45) * 50.0, 0.0, 40.0))
-            local_score -= blur_penalty
-
-        # Penalty for framing anomaly (e.g. head cropped out)
+        # Defect deductions are applied once by the fusion engine.
         framing_defect = (framing_anomaly == "HEAD_CROPPED")
-        if framing_defect:
-            local_score = min(local_score, 20.0)  # Capped at defective level
 
         local_score = float(np.clip(local_score, 0.0, 100.0))
 
@@ -159,3 +159,49 @@ class LocalFeatureExtractor:
             "face_yaw_asymmetry": face_yaw_asym,
             "local_technical_score": round(local_score, 4),
         }
+
+    def _extract_multi(self, img, localization):
+        """Equal-person aggregation with lower-tail protection for couples/groups."""
+        context = localization.get("assessment_context", {})
+        records = []
+        people = localization["subjects"] if context.get("shot_type") not in ("detail", "scene") else []
+        for subject in people:
+            features = self.extract(img, subject)
+            face_box = subject.get("face_bbox")
+            assessable = bool(face_box and min(face_box[2]-face_box[0], face_box[3]-face_box[1]) >= 24)
+            if not assessable and features["face_present"]:
+                # Tiny faces cannot support reliable face focus measurements.
+                features = self.extract(img, dict(subject, face_detected=False))
+            records.append(dict(features, subject_id=subject["subject_id"], face_assessable=assessable,
+                                face_detected=subject.get("face_detected", False)))
+        if not records:
+            result = self.extract(img, {"subject_detected": False, "face_detected": False})
+        else:
+            result = dict(records[0])
+            for key in ("face_sharpness", "face_tenengrad", "subject_sharpness", "local_contrast"):
+                result[key] = round(float(np.mean([r[key] for r in records])), 4)
+            scores = [r["local_technical_score"] for r in records]
+            # A sharp partner cannot conceal the other partner being out of focus.
+            lower = min(scores) if len(scores) == 2 else float(np.percentile(scores, 20))
+            result["local_technical_score"] = round(.5*float(np.mean(scores)) + .5*lower, 4)
+            result["motion_blur_metric"] = round(float(np.percentile([r["motion_blur_metric"] for r in records], 80)), 4)
+            result["face_present"] = any(r["face_present"] for r in records)
+        if context.get("motion_intent") == "intentional":
+            # Retain a static anchor test: intentional movement is not a blanket
+            # pass for an entirely unfocused frame. Evaluate sharp image tiles.
+            gray = img.convert("L")
+            tiles = []
+            for row in range(4):
+                for col in range(4):
+                    tile = gray.crop((col*img.width//4, row*img.height//4,
+                                      (col+1)*img.width//4, (row+1)*img.height//4))
+                    if min(tile.size) >= 8:
+                        tiles.append(float(np.clip(np.log1p(self._calc_laplacian_var(tile))*11, 0, 100)))
+            anchor = float(np.percentile(tiles, 75)) if tiles else 0.
+            result["static_anchor_score"] = round(anchor, 4)
+            result["local_technical_score"] = round(.5*result["local_technical_score"] + .5*anchor, 4)
+        result["subject_metrics"] = records
+        result["assessable_face_count"] = sum(r["face_assessable"] for r in records)
+        result["unassessable_subject_count"] = sum(not r["face_assessable"] for r in records)
+        result["framing_defect_detected"] = False
+        return result

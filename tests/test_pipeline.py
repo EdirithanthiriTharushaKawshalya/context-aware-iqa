@@ -38,16 +38,17 @@ def test_pipeline_output_structure(dummy_rgb_image):
 
 def test_decision_boundary_threshold():
     """Verifies that the threshold parameter accurately governs Keep vs Review."""
-    pipeline = Phase4Pipeline()
-    img = Image.new("RGB", (200, 200), color=(128, 128, 128))
-
-    # Low threshold forces Keep
-    res_low = pipeline.run(img, PipelineConfig(threshold=1.0))
-    assert res_low.classification == "Keep"
-
-    # Extreme threshold forces Review
-    res_high = pipeline.run(img, PipelineConfig(threshold=99.0))
-    assert res_high.classification == "Review"
+    from types import SimpleNamespace
+    loc = {"subject_detected": False, "subjects": [], "person_detector_status": "ok"}
+    local = {"local_technical_score": 60., "face_present": False,
+             "framing_defect_detected": False, "motion_blur_metric": .2}
+    pipeline = Phase4Pipeline(
+        localizer=SimpleNamespace(localize=lambda _: dict(loc)),
+        local_extractor=SimpleNamespace(extract=lambda *_: dict(local)),
+        global_extractor=SimpleNamespace(extract=lambda *_: {"global_context_score": 60.}))
+    img = Image.new("RGB", (200, 200))
+    assert pipeline.run(img, PipelineConfig(threshold=1.)).classification == "Keep"
+    assert pipeline.run(img, PipelineConfig(threshold=99.)).classification == "Review"
 
 
 def test_framing_defect_penalty_capping():

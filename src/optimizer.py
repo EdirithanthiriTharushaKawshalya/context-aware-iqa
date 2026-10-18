@@ -53,7 +53,7 @@ class OptimizationResult:
     grid_search_summary: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        return dict(asdict(self), policy_version=2)
 
 
 class HyperparameterOptimizer:
@@ -64,7 +64,7 @@ class HyperparameterOptimizer:
 
     def __init__(self, ground_truth_manifest: Optional[str] = None):
         self.harness = EvaluationHarness(ground_truth_manifest=ground_truth_manifest)
-        self.gt = self.harness.load_ground_truth(event_filter="birthday_shoot")
+        self.gt = self.harness.load_ground_truth()
 
     def _compute_score(
         self,
@@ -85,6 +85,15 @@ class HyperparameterOptimizer:
         s_global = float(gf.get("global_context_score", 50.0))
 
         base_score = (w_local * s_local) + (w_global * s_global)
+        if "subjects" in loc:
+            from src.quality_policy import apply_policy
+            from src.scene_context import resolve_context
+            from types import SimpleNamespace
+            context = loc.get("assessment_context") or resolve_context(loc)
+            config = SimpleNamespace(face_discount=face_discount, motion_thresh=motion_thresh,
+                                     motion_scale=motion_scale, subject_quality_threshold=35.)
+            return apply_policy(base_score, loc, lf, context, config)[0]
+        # Legacy feature entries retain their original scoring for reproducibility.
 
         framing_defect = bool(lf.get("framing_defect_detected", False)) or loc.get("framing_anomaly") == "HEAD_CROPPED"
         has_face = bool(lf.get("face_present", True))
@@ -129,10 +138,23 @@ class HyperparameterOptimizer:
                 motion_scale=motion_scale,
                 framing_cap=framing_cap,
             )
+            needs_review = False
+            loc = feats.get("localization", {})
+            if "subjects" in loc:
+                from src.quality_policy import apply_policy
+                from src.scene_context import resolve_context
+                from types import SimpleNamespace
+                lf = feats.get("local_features", {})
+                gf = feats.get("global_features", {})
+                base = w_local*lf.get("local_technical_score", 50.) + w_global*gf.get("global_context_score", 50.)
+                context = loc.get("assessment_context") or resolve_context(loc)
+                cfg = SimpleNamespace(face_discount=face_discount, motion_thresh=motion_thresh,
+                                      motion_scale=motion_scale, subject_quality_threshold=35.)
+                needs_review = bool(apply_policy(base, loc, lf, context, cfg)[3])
             preds.append({
                 "image_id": img_id,
                 "predicted_score": sc,
-                "predicted_classification": "Keep" if sc >= threshold else "Review"
+                "predicted_classification": "Keep" if sc >= threshold and not needs_review else "Review"
             })
 
         gt_map = {

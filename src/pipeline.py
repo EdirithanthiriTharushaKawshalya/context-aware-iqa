@@ -8,7 +8,9 @@ penalty modeling and uncertainty quantification.
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
-from PIL import Image
+from PIL import Image, ImageOps
+from src.scene_context import resolve_context
+from src.quality_policy import apply_policy
 
 from src.semantic_localizer import SemanticLocalizer
 from src.local_features import LocalFeatureExtractor
@@ -27,6 +29,10 @@ class PipelineConfig:
     framing_cap: float = 25.0
     ablation_mode: str = "full"  # "full", "local_only", "global_only", "no_penalty"
 
+    shot_type: str = "auto"
+    motion_intent: str = "auto"
+    subject_quality_threshold: float = 35.0
+
     @classmethod
     def from_tuned(cls, config_path: Optional[str] = None) -> "PipelineConfig":
         """Loads optimal hyperparameters from tuned_config.json if available."""
@@ -37,6 +43,8 @@ class PipelineConfig:
             try:
                 with open(p, "r", encoding="utf-8") as f:
                     data = json.load(f)
+                if data.get("policy_version") != 2:
+                    return cls()  # Portrait-era calibration does not transfer to this policy.
                 best = data.get("best_config", {})
                 return cls(
                     w_local=float(best.get("w_local", 0.55)),
@@ -69,6 +77,8 @@ class PipelineResult:
     conf_tier: str  # "high", "med", "low"
     margin_of_error: float
     dist_to_boundary: float
+    assessment_context: Dict[str, Any] = field(default_factory=dict)
+    review_reasons: list = field(default_factory=list)
     localization: Dict[str, Any] = field(default_factory=dict)
     local_features: Dict[str, Any] = field(default_factory=dict)
     global_features: Dict[str, Any] = field(default_factory=dict)
@@ -97,10 +107,14 @@ class Phase4Pipeline:
         if config is None:
             config = PipelineConfig.from_tuned()
 
-        rgb_img = img.convert("RGB")
+        rgb_img = ImageOps.exif_transpose(img).convert("RGB")
 
         # 1. Semantic Localization
         loc = self.localizer.localize(rgb_img)
+
+        context = resolve_context(loc, config.shot_type, config.motion_intent)
+        loc["assessment_context"] = context
+        review_reasons = list(context["review_reasons"])
 
         # 2. Local Technical Features
         local_feat = self.local_extractor.extract(rgb_img, loc)
@@ -111,13 +125,7 @@ class Phase4Pipeline:
         # 4. Multimodal Fusion & Defect Penalties
         s_local = float(local_feat["local_technical_score"])
         s_global = float(global_feat["global_context_score"])
-        framing_defect = bool(local_feat["framing_defect_detected"])
         has_face = bool(local_feat["face_present"])
-        subject_present = bool(loc.get("subject_detected", True))
-        motion_metric = float(local_feat["motion_blur_metric"])
-        framing_anomaly = loc.get("framing_anomaly", "NONE")
-        face_orientation = loc.get("face_orientation", "FRONTAL" if has_face else "TURNED_AWAY")
-
         base_score = (config.w_local * s_local) + (config.w_global * s_global)
 
         framing_penalty_pts = 0.0
@@ -131,51 +139,31 @@ class Phase4Pipeline:
         elif config.ablation_mode == "no_penalty":
             unified_score = base_score
         else:
-            # Full context-aware penalty engine
-            score_curr = base_score
-
-            # Anomaly Penalty 1: Head/Face cropped out
-            if framing_defect or framing_anomaly == "HEAD_CROPPED":
-                capped_score = min(score_curr * 0.35, config.framing_cap)
-                framing_penalty_pts = score_curr - capped_score
-                score_curr = capped_score
-
-            # Anomaly Penalty 2: Face Orientation & Turned Away
-            elif face_orientation == "TURNED_AWAY" and subject_present:
-                discounted_score = score_curr * config.face_discount
-                face_penalty_pts = score_curr - discounted_score
-                score_curr = discounted_score
-            elif face_orientation == "PROFILE" and subject_present:
-                # Gentle continuous penalty for extreme angle: 40% of full discount
-                profile_mult = 1.0 - (1.0 - config.face_discount) * 0.40
-                discounted_score = score_curr * profile_mult
-                face_penalty_pts = score_curr - discounted_score
-                score_curr = discounted_score
-            elif not has_face and subject_present:
-                discounted_score = score_curr * config.face_discount
-                face_penalty_pts = score_curr - discounted_score
-                score_curr = discounted_score
-
-            # Anomaly Penalty 3: Severe motion blur
-            if motion_metric > config.motion_thresh:
-                motion_penalty = (motion_metric - config.motion_thresh) * config.motion_scale
-                motion_penalty_pts = motion_penalty
-                score_curr -= motion_penalty
-
-            unified_score = max(0.0, min(100.0, score_curr))
+            unified_score, face_penalty_pts, motion_penalty_pts, review_reasons = apply_policy(
+                base_score, loc, local_feat, context, config)
 
         total_defect_penalty = round(base_score - unified_score, 2)
         classification = "Keep" if unified_score >= config.threshold else "Review"
+        if review_reasons and config.ablation_mode == "full":
+            classification = "Review"
 
-        # 5. Calibrated Confidence & Uncertainty Quantification
+        # 5. Heuristic confidence indicator
         dist_to_boundary = abs(unified_score - config.threshold)
         c_margin = min(1.0, dist_to_boundary / 15.0)  # saturation at 15 points distance
         c_subj = float(loc.get("subject_confidence", 0.8))
         c_face = float(loc.get("face_confidence", 0.7)) if has_face else 0.5
         c_detect = 0.6 * c_subj + 0.4 * c_face
+        if not loc.get("subject_detected") and loc.get("person_detector_status") == "ok":
+            c_detect = 0.8
+        metrics = local_feat.get("subject_metrics", [])
+        if context["faces_required"] and metrics:
+            c_detect *= local_feat.get("assessable_face_count", 0)/len(metrics)
 
         overall_confidence_pct = round((0.70 * c_margin + 0.30 * c_detect) * 100.0, 1)
 
+        # This is a heuristic confidence indicator, not a calibrated probability.
+        if review_reasons:
+            overall_confidence_pct = min(overall_confidence_pct, 49.0)
         if overall_confidence_pct >= 75.0:
             uncertainty_level = "High Confidence (Low Uncertainty)"
             conf_tier = "high"
@@ -183,7 +171,7 @@ class Phase4Pipeline:
             uncertainty_level = "Moderate Confidence (Borderline Margin)"
             conf_tier = "med"
         else:
-            uncertainty_level = "Low Confidence (High Uncertainty - Near Boundary)"
+            uncertainty_level = "Low Confidence (Insufficient Evidence or Near Boundary)"
             conf_tier = "low"
 
         margin_of_error = round(max(0.5, (100.0 - overall_confidence_pct) * 0.08), 1)
@@ -203,6 +191,8 @@ class Phase4Pipeline:
             conf_tier=conf_tier,
             margin_of_error=margin_of_error,
             dist_to_boundary=round(dist_to_boundary, 2),
+            assessment_context=context,
+            review_reasons=review_reasons,
             localization=loc,
             local_features=local_feat,
             global_features=global_feat,

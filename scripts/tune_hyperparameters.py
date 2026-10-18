@@ -40,7 +40,7 @@ def refresh_features(manifest_path: str, cache_path: str):
     global_extractor = GlobalFeatureExtractor()
 
     harness = EvaluationHarness(ground_truth_manifest=manifest_path)
-    gt = harness.load_ground_truth(event_filter="birthday_shoot")
+    gt = harness.load_ground_truth()
 
     cache = {}
     print(f"[INFO] Extracting fresh features for {len(gt)} images...")
@@ -51,15 +51,13 @@ def refresh_features(manifest_path: str, cache_path: str):
         with Image.open(full_path) as img:
             rgb = img.convert("RGB")
             loc = localizer.localize(rgb)
+            from src.scene_context import resolve_context
+            loc["assessment_context"] = resolve_context(loc)
             lf = local_extractor.extract(rgb, loc)
             gf = global_extractor.extract(rgb, loc)
 
             cache[str(full_path)] = {
-                "localization": {
-                    "subject_detected": loc.get("subject_detected", False),
-                    "face_detected": loc.get("face_detected", False),
-                    "framing_anomaly": loc.get("framing_anomaly", "NONE"),
-                },
+                "localization": loc,
                 "local_features": lf,
                 "global_features": gf,
             }
@@ -88,6 +86,8 @@ def main():
     else:
         with open(cache_file, "r", encoding="utf-8") as f:
             features_cache = json.load(f)
+        if any("subjects" not in entry.get("localization", {}) for entry in features_cache.values()):
+            raise ValueError("Legacy portrait feature cache: rerun with --refresh-cache before tuning the new policy.")
         print(f"[INFO] Loaded {len(features_cache)} cached feature entries from: {args.cache}")
 
     optimizer = HyperparameterOptimizer(ground_truth_manifest=args.manifest)

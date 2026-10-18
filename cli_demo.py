@@ -83,6 +83,9 @@ def parse_args():
         choices=["full", "local_only", "global_only", "no_penalty"],
         help="Ablation mode: full, local_only, global_only, no_penalty",
     )
+    from src.scene_context import SHOT_TYPES, MOTION_INTENTS
+    parser.add_argument("--shot-type", choices=SHOT_TYPES, default="auto")
+    parser.add_argument("--motion-intent", choices=MOTION_INTENTS, default="auto")
     return parser.parse_args()
 
 
@@ -133,6 +136,9 @@ def print_single_evaluation(
     t_breakdown.add_column("Raw Value", style="white")
     t_breakdown.add_column("Contribution / Deductions", style="bold")
 
+    console.print(f"Shot: {result.assessment_context.get('shot_type')} | People: {result.assessment_context.get('subject_count')}")
+    for reason in result.review_reasons:
+        console.print(f"Review: {reason}")
     local_f = result.local_features
     global_f = result.global_features
 
@@ -361,6 +367,8 @@ def main():
         w_global=args.w_global,
         threshold=args.threshold,
         ablation_mode=args.ablation,
+        shot_type=args.shot_type,
+        motion_intent=args.motion_intent,
     )
     pipeline = Phase4Pipeline()
     export_dir = Path(args.export_dir)

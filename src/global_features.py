@@ -44,6 +44,8 @@ class GlobalFeatureExtractor:
 
         # 1. Whole-frame Sharpness & Contrast
         edges = gray.filter(ImageFilter.FIND_EDGES)
+        if min(edges.size) > 2:
+            edges = edges.crop((1, 1, edges.width-1, edges.height-1))
         edge_stat = ImageStat.Stat(edges)
         global_sharpness = float(edge_stat.var[0]) if edge_stat.var else 0.0
 
@@ -63,24 +65,21 @@ class GlobalFeatureExtractor:
         # In professional event photography, a sharp subject on a softly blurred
         # background (bokeh) is a deliberate aesthetic choice, not a defect!
         dof_separation = 1.0
-        if localization and localization.get("subject_bbox"):
-            sx1, sy1, sx2, sy2 = [int(round(c)) for c in localization["subject_bbox"]]
-            sx1, sy1 = max(0, sx1), max(0, sy1)
-            sx2, sy2 = min(orig_w, sx2), min(orig_h, sy2)
-
-            # Create a mask for background
-            bg_mask = np.ones((orig_h, orig_w), dtype=bool)
-            bg_mask[sy1:sy2, sx1:sx2] = False
-
-            if np.sum(bg_mask) > 1000:
-                # Background gradient energy
-                bg_pixels = gray_np[bg_mask]
+        boxes = []
+        if localization and localization.get("subject_detected"):
+            boxes = [s["subject_bbox"] for s in localization.get("subjects", [])]
+            if not boxes and localization.get("subject_bbox"):
+                boxes = [localization["subject_bbox"]]
+        if boxes and min(orig_w, orig_h) >= 2:
+            subject_mask = np.zeros((orig_h, orig_w), dtype=bool)
+            for box in boxes:
+                x1, y1, x2, y2 = [int(round(c)) for c in box]
+                subject_mask[max(0,y1):min(orig_h,y2), max(0,x1):min(orig_w,x2)] = True
+            bg_mask = ~subject_mask
+            if bg_mask.sum() > 1000 and subject_mask.any():
                 gy, gx = np.gradient(gray_np.astype(np.float32))
-                bg_grad = np.mean(gx[bg_mask]**2 + gy[bg_mask]**2)
-
-                # Subject gradient energy
-                subj_grad = np.mean(gx[sy1:sy2, sx1:sx2]**2 + gy[sy1:sy2, sx1:sx2]**2) + 1e-6
-                dof_separation = float(subj_grad / (bg_grad + 1e-6))
+                energy = gx**2 + gy**2
+                dof_separation = float((energy[subject_mask].mean()+1e-6)/(energy[bg_mask].mean()+1e-6))
 
         # 4. Composite Global Context Score (0 to 100)
         # Scaled sharpness + contrast + aesthetic DOF reward - exposure penalty
@@ -90,6 +89,9 @@ class GlobalFeatureExtractor:
         # Reward natural DOF separation (values between 1.2 and 5.0 indicate beautiful subject isolation)
         dof_bonus = float(np.clip((dof_separation - 1.0) * 4.0, 0.0, 15.0))
 
+        context = (localization or {}).get("assessment_context", {})
+        if context.get("shot_type") in ("group", "scene"):
+            dof_bonus = 0.0
         global_score = (0.50 * norm_sharpness + 0.50 * norm_contrast + dof_bonus) - exposure_penalty
         global_score = float(np.clip(global_score, 0.0, 100.0))
 

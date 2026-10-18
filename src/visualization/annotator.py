@@ -57,6 +57,12 @@ class ImageAnnotator:
         font_size = max(14, int(min(w, h) * 0.016))
         font = cls.get_font(font_size)
 
+        if "subjects" in localization:
+            for subject in localization["subjects"]:
+                annotated = cls.draw_annotations(annotated,
+                    dict(subject, subject_detected=True), show_subject, show_face)
+            return annotated
+
         # 1. Primary Subject Box
         subj_box = localization.get("subject_bbox")
         if show_subject and subj_box is not None and localization.get("subject_detected", False):

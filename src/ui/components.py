@@ -140,6 +140,12 @@ def render_sidebar_controls(
                 help="Supports event photos in RGB format.",
             )
 
+        from src.scene_context import SHOT_TYPES, MOTION_INTENTS
+        shot_type = st.selectbox("Shot type", SHOT_TYPES,
+            help="Auto counts people. Choose portrait, couple or group for posed photos requiring visible faces; candid allows profiles and backs.")
+        motion_intent = st.selectbox("Motion intent", MOTION_INTENTS,
+            help="Choose intentional for long exposure, panning or deliberate movement. Exposure and static-detail checks remain active.")
+
         # 3. Pipeline Configuration Parameters
         st.markdown("---")
         with st.expander("Pipeline Configuration", expanded=False):
@@ -193,6 +199,8 @@ def render_sidebar_controls(
             st.error(f"Error loading uploaded file: {e}")
 
     config = PipelineConfig(
+        shot_type=shot_type,
+        motion_intent=motion_intent,
         w_local=w_local,
         w_global=w_global,
         threshold=threshold,
@@ -308,6 +316,13 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
     """Renders right column multi-stage score breakdown and penalties."""
     st.markdown('<div class="section-header">Multi-Stage Feature & Penalty Breakdown</div>', unsafe_allow_html=True)
 
+    context = result.assessment_context
+    st.caption(f"Shot: {context.get('shot_type', 'auto')} | Detected people: {context.get('subject_count', 0)} | Motion: {context.get('motion_intent', 'auto')}")
+    for reason in result.review_reasons:
+        st.warning(reason)
+    if result.local_features.get("subject_metrics"):
+        with st.expander("Individual subject quality"):
+            st.dataframe(result.local_features["subject_metrics"], use_container_width=True)
     local_f = result.local_features
     global_f = result.global_features
 
@@ -402,7 +417,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             f"""
             <div class="penalty-item">
-                <span class="penalty-tag">ANOMALY</span> <b>Orientation Defect</b>: Subject turned away or face occluded (-{result.face_penalty_pts:.1f} pts, -40%).
+                <span class="penalty-tag">ANOMALY</span> <b>Orientation Defect</b>: Posed subjects with unverified faces (-{result.face_penalty_pts:.1f} pts).
             </div>
             """,
             unsafe_allow_html=True,
@@ -423,7 +438,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
         st.markdown(
             """
             <div class="penalty-none">
-                <span class="clean-tag">NOMINAL</span> Framing geometry intact, face detected, motion within tolerance.
+                <span class="clean-tag">NOMINAL</span> No additional deductions under the selected photographic intent.
             </div>
             """,
             unsafe_allow_html=True,
@@ -432,7 +447,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Formula Math Box
-    score_color = "#10b981" if result.unified_score >= config.threshold else "#f43f5e"
+    score_color = "#10b981" if result.classification == "Keep" else "#f43f5e"
     deduction_str = f" - {result.total_defect_penalty:.1f} deductions" if result.total_defect_penalty > 0 else ""
     formula_html = (
         f'<div class="formula-container">'
