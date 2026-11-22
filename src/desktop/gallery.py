@@ -56,7 +56,7 @@ class PhotoGallery(ttk.Frame):
     def set_photos(self, project, indices, chosen=(), editable=False, selected=None):
         rows = [(str(i), project.photos[int(i)]) for i in indices] if project else []
         signature = (project.source if project else '', tuple((i, p.relative, p.size, p.modified,
-                     p.decision, p.status, p.must_include, p.style_label) for i, p in rows),
+                     p.decision, p.status, p.must_include, p.style_label, p.duplicate_label) for i, p in rows),
                      frozenset(chosen), editable, selected)
         if signature == self.signature:
             return
@@ -149,7 +149,11 @@ class PhotoGallery(ttk.Frame):
                 label += ' · AI '+photo.status
             color = '#24765b' if photo.decision == 'Keep' else '#926528' if photo.decision == 'Review' else '#837b91'
             canvas.create_text(x+10, y+166, text=label, anchor='w', fill=color, font=('Segoe UI', 9), tags=tags)
-            if photo.must_include:
+            if photo.duplicate_label:
+                badge = photo.duplicate_label + (' · protected' if photo.must_include else '')
+                canvas.create_text(x+10,y+186,text=badge,anchor='w',fill='#24765b' if photo.duplicate_best else '#837b91',
+                                   font=('Segoe UI',9),tags=tags)
+            elif photo.must_include:
                 canvas.create_text(x+10, y+186, text='Protected', anchor='w', fill='#7659d6', font=('Segoe UI', 9), tags=tags)
             elif photo.style_label != 'Unknown':
                 canvas.create_text(x+10, y+186, text=photo.style_label, anchor='w', fill='#837b91', font=('Segoe UI', 9), tags=tags)
@@ -221,6 +225,10 @@ class PhotoGallery(ttk.Frame):
         if event.widget == self and self.alive:
             self.alive = False
             self.timer_host.after_cancel(self.timer)
+            # Break callbacks that capture the owning app/dialog and Tk variables.
+            # Otherwise a later background-worker GC can finalize them off-thread.
+            self.on_select = self.on_toggle = self.on_open = None
+            self.rows = []
             self.photo_images.clear()
             self.cache.clear()
             self.executor.shutdown(wait=False, cancel_futures=True)

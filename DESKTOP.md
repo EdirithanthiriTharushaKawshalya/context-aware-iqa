@@ -5,6 +5,45 @@ The Streamlit website retains its existing layout and research workflow, with
 the shared Context Aware IQA name and logo. Both
 interfaces reuse `src.pipeline.Phase4Pipeline`.
 
+Version 0.8.0 adds exact-copy and similar-burst recommendations. File SHA-256
+and orientation-normalized RGB pixel hashes identify exact file/visual copies,
+including copies with different names or image metadata. Similar burst candidates
+must pass perceptual-hash, structural, color and available subject-region checks.
+Capture timestamps (including subseconds and time-zone offsets) limit near matches
+to a three-second window. Different known cameras are not joined into a burst.
+Without original capture times, matching requires nearby numbered filenames in
+the same folder and stricter visual agreement. File modification times are never
+treated as camera capture times. All members must agree, preventing similarity
+chains from joining gradually changing scenes. Low-information flat images are
+not grouped by approximate visual similarity; exact copies can still match.
+
+**Best shot per burst** is on by default. Automatic selection takes one eligible
+Keep from each group, ranked by Keep status and a combination of overall quality
+and the weakest assessable subject's detail. It never fills a count shortfall with
+extra burst frames. Explicit choices and protected photos remain selected, even
+when several belong to one group. Uncheck the option to include all eligible
+frames, or explicitly add alternatives. AI Review remains Review until you approve
+a frame. Recommendations do not evaluate smiles, closed eyes, expressions or
+artistic intention, and similar-burst groups are candidates rather than proof of
+duplicate content. Thresholds have synthetic regression coverage, not a claimed
+real-world accuracy measurement.
+
+Use **Bursts**, **Best in bursts** or **Burst alternatives** to find groups.
+Thumbnail badges show Best of N or Alternate. **Compare duplicate / burst shots**
+opens a contact sheet with individual scores, 100% inspection, card controls for
+keeping multiple variations, and **Use selected shot for this burst** to replace
+that group's delivery choice. Protected alternatives must be unprotected before
+replacement. Grouping never marks originals for removal. Unchosen alternatives
+can be inspected in the existing final-folder preview and recycled only after
+your confirmation. Creative-photo protection still applies to automatic removal
+suggestions.
+
+New analysis builds visual fingerprints automatically. On older saved projects,
+**Find duplicate / burst shots** upgrades cached assessments in the killable
+worker without rerunning the quality models. Fingerprints and the selection
+preference persist in project saves; changed images invalidate their cached
+fingerprints. Pausing and resuming retains completed work.
+
 Version 0.7.0 makes the thumbnail gallery the default photo library. Use All,
 Keep, Review, Chosen and Not chosen to browse the folder. Click a card to inspect
 it; its bottom button adds or removes that photo from the delivery set. Adding

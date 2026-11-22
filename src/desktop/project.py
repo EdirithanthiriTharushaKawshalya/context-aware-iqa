@@ -35,6 +35,20 @@ class Photo:
     photographic_profiles: list = field(default_factory=list)
     possible_creative: bool = False
     selection_choice: str = ''
+    duplicate_features: dict = field(default_factory=dict)
+    duplicate_group: str = ''
+    duplicate_kind: str = ''
+    duplicate_count: int = 0
+    duplicate_best: bool = False
+    burst_detail_score: float | None = None
+
+    @property
+    def duplicate_label(self):
+        if not self.duplicate_group:
+            return ''
+        if self.duplicate_best:
+            return f'Best of {self.duplicate_count}' if self.decision == 'Keep' else f'Best to inspect · {self.duplicate_count}'
+        return f'Alternate · {self.duplicate_count} shots'
 
     @property
     def decision(self):
@@ -63,6 +77,52 @@ class Project:
     finished_at: str | None = None
     finish_summary: dict = field(default_factory=dict)
     assessment_signature: str = ''
+    one_per_burst: bool = True
+
+    def update_duplicate_groups(self):
+        from .duplicates import group_photos
+        group_photos(self.photos)
+        self.duplicate_recommendations()
+
+    def duplicate_recommendations(self):
+        from .duplicates import quality_rank
+        groups = {}
+        for photo in self.photos:
+            photo.duplicate_best = False
+            if photo.duplicate_group and not photo.recycled and photo.status in ('Keep','Review'):
+                groups.setdefault(photo.duplicate_group, []).append(photo)
+        groups = {key: members for key,members in groups.items() if len(members)>1}
+        for members in groups.values():
+            candidates = [p for p in members if p.decision != 'Excluded' and
+                          (p.selection_choice != 'exclude' or p.must_include)]
+            if candidates:
+                min(candidates,key=quality_rank).duplicate_best = True
+        return groups
+
+    def duplicates_pending(self):
+        from .duplicates import VERSION
+        return any(not p.recycled and p.status in ('Keep','Review') and
+                   p.duplicate_features.get('version') != VERSION for p in self.photos)
+
+    def choose_burst_photo(self, relative):
+        """Explicitly replace this burst's delivery choice, never its source files."""
+        photo = next((p for p in self.photos if p.relative == relative),None)
+        groups = self.duplicate_recommendations()
+        members = groups.get(photo.duplicate_group,[]) if photo else []
+        if not members:
+            raise ValueError('This photo has no duplicate/burst group.')
+        if any(p.must_include and p is not photo for p in members):
+            raise ValueError('Unprotect the other burst photo before replacing it, or add this photo separately.')
+        old = [(p,p.override,p.selection_choice) for p in members]
+        try:
+            for member in members:
+                if member is not photo:
+                    member.selection_choice = 'exclude'
+            self.choose_photo(relative,True)
+        except Exception:
+            for member,override,choice in old:
+                member.override,member.selection_choice = override,choice
+            raise
 
     def prepare_assessment(self, signature):
         """Refresh old engine results while retaining human overrides/protection."""
@@ -90,6 +150,7 @@ class Project:
             'recycled': sum(photo.recycled for photo in self.photos),
             'target': self.target,
             'creative_keeps': sum(photo.creative_keep for photo in active),
+            'duplicate_groups': len(self.duplicate_recommendations()),
         }
 
     def finish(self, path):
@@ -113,6 +174,7 @@ class Project:
         return summary
 
     def save(self, path):
+        self.duplicate_recommendations()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + '.tmp')
@@ -158,8 +220,11 @@ class Project:
         found = {p.relative for p in photos}
         photos.extend(p for p in old.values() if p.recycled and p.relative not in found)
         self.photos = photos
+        self.update_duplicate_groups()
 
     def selection(self):
+        from .duplicates import quality_rank
+        self.duplicate_recommendations()
         if self.target is not None and (type(self.target) is not int or self.target < 1):
             raise ValueError('Target must be at least one.')
         eligible = [p for p in self.photos if p.decision == 'Keep' and p.status in ('Keep', 'Review')
@@ -168,6 +233,15 @@ class Project:
         if self.target is not None and len(pinned) > self.target:
             raise ValueError('Must-include or explicitly chosen count exceeds the target. Increase the target or remove a chosen photo.')
         candidates = sorted([p for p in eligible if p not in pinned], key=lambda p: (-p.score, p.relative))
+        if self.one_per_burst:
+            occupied = {p.duplicate_group for p in pinned if p.duplicate_group}
+            best = {}
+            for photo in candidates:
+                if photo.duplicate_group and photo.duplicate_group not in occupied:
+                    current = best.get(photo.duplicate_group)
+                    if current is None or quality_rank(photo) < quality_rank(current):
+                        best[photo.duplicate_group] = photo
+            candidates = [p for p in candidates if not p.duplicate_group or best.get(p.duplicate_group) is p]
         if self.style == 'Balanced':
             seen = {p.group for p in pinned if p.group}
             first, remaining = [], []
@@ -216,7 +290,8 @@ class Project:
         return [photo for photo in self.photos if not photo.recycled and not photo.must_include and (
             photo.override == 'Excluded' or (photo.style_label != 'Creative' and not photo.possible_creative) and (
                 photo.decision == 'Review' or
-                self.target is not None and photo.decision == 'Keep' and photo.relative not in selected))]
+                (self.target is not None or self.one_per_burst and photo.duplicate_group) and
+                photo.decision == 'Keep' and photo.relative not in selected))]
 
     def checked_cleanup_path(self, photo):
         relative = Path(photo.relative)
@@ -286,6 +361,7 @@ class Project:
         for record in operation['files']:
             if record['outcome'] == 'queued':
                 record['outcome'] = 'not_attempted'
+        self.update_duplicate_groups()
         self.save(project_file)
         return report
 
@@ -301,6 +377,8 @@ class Project:
             try:
                 path = self.path_for(photo)
                 with Image.open(path) as original:
+                    from .duplicates import capture_metadata
+                    metadata = capture_metadata(original.getexif())
                     image = ImageOps.exif_transpose(original).convert('RGB')
                 result = pipeline.run(image, config)
                 if not math.isfinite(result.unified_score):
@@ -321,22 +399,43 @@ class Project:
                     photo.reasons.append(f'Learned Keep score: {result.unified_score:.1f}/100; threshold: {result.decision_threshold:.1f}.')
                 if photo.status == 'Review' and not photo.reasons:
                     photo.reasons = ['Quality score is below the Keep threshold.']
-                # Coarse visual similarity heuristic, not identity or event recognition.
-                small = image.convert('L').resize((8, 8))
-                pixels = [small.getpixel((x, y)) for y in range(8) for x in range(8)]
-                mean = sum(pixels) / len(pixels)
-                photo.signature = ''.join('1' if p >= mean else '0' for p in pixels)
+                self.describe_duplicates(photo,image,metadata,getattr(result,'localization',{}))
+                records = getattr(result,'local_features',{}).get('subject_metrics',[])
+                details = [r['local_technical_score'] for r in records if r.get('face_assessable')]
+                photo.burst_detail_score = min(details) if details else photo.technical_score
                 photo.group = photo.relative
-                for earlier in self.photos:
-                    if earlier is photo:
-                        break
-                    if earlier.signature and sum(a != b for a, b in zip(earlier.signature, photo.signature)) <= 4:
-                        photo.group = earlier.group
-                        break
             except Exception as exc:
                 photo.status = 'Error'
                 photo.reasons = [str(exc)]
             progress(photo)
+        self.update_duplicate_groups()
+
+    def describe_duplicates(self, photo, image, metadata, localization=None):
+        import hashlib
+        from .duplicates import describe
+        with self.path_for(photo).open('rb') as handle:
+            digest = hashlib.file_digest(handle,'sha256').hexdigest()
+        photo.duplicate_features = describe(image,localization,metadata,digest)
+        photo.signature = photo.duplicate_features['phash']
+
+    def refresh_duplicate_fingerprints(self, progress=None, before_photo=None):
+        """Upgrade saved assessments without rerunning their quality models."""
+        from .duplicates import VERSION, capture_metadata
+        for photo in self.photos:
+            if photo.recycled or photo.status not in ('Keep','Review') or photo.duplicate_features.get('version') == VERSION:
+                continue
+            if before_photo:
+                before_photo(photo)
+            try:
+                with Image.open(self.path_for(photo)) as original:
+                    metadata = capture_metadata(original.getexif())
+                    image = ImageOps.exif_transpose(original).convert('RGB')
+                self.describe_duplicates(photo,image,metadata)
+            except (OSError,ValueError) as exc:
+                photo.reasons.append(f'Duplicate comparison unavailable: {exc}')
+            if progress:
+                progress(photo)
+        self.update_duplicate_groups()
 
     def export(self, destination):
         """Create a new export folder exclusively; never overwrite or move originals."""

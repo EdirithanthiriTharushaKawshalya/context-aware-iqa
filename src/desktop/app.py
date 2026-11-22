@@ -43,6 +43,7 @@ class DesktopApp:
         self.shot = tk.StringVar(value='auto')
         self.motion = tk.StringVar(value='auto')
         self.style = tk.StringVar(value='Balanced')
+        self.one_per_burst = tk.BooleanVar(value=True)
         self.view = tk.StringVar(value='All')
         self.protected = tk.BooleanVar(value=False)
         self.selection_hint = tk.StringVar(value='Blank = all suitable photos')
@@ -67,6 +68,7 @@ class DesktopApp:
         build(self)
         self.target.trace_add('write', self.schedule_preferences)
         self.style.trace_add('write', self.schedule_preferences)
+        self.one_per_burst.trace_add('write', self.schedule_preferences)
         self.sync_controls()
         root.after(150, self.poll)
 
@@ -107,6 +109,7 @@ class DesktopApp:
             self.shot.set(project.shot_type)
             self.motion.set(project.motion_intent)
             self.style.set(project.style)
+            self.one_per_burst.set(project.one_per_burst)
             self.preferences_valid = True
             self.selection_hint.set('Blank = all suitable photos · selection updates automatically')
             self.table.delete(*self.table.get_children())
@@ -231,19 +234,20 @@ class DesktopApp:
         self.preference_timer = None
         if not self.project or self.busy:
             return False
-        old = self.project.target, self.project.style
+        old = self.project.target, self.project.style, self.project.one_per_burst
         try:
             self.project.target = self.settings()
             self.project.style = self.style.get()
+            self.project.one_per_burst = self.one_per_burst.get()
             self.project.selection()
             self.preferences_valid = True
             self.selection_hint.set('Blank = all suitable photos · selection updates automatically')
-            if old != (self.project.target, self.project.style):
+            if old != (self.project.target, self.project.style, self.project.one_per_burst):
                 self.checkpoint()
             self.refresh()
             return True
         except Exception as exc:
-            self.project.target, self.project.style = old
+            self.project.target, self.project.style, self.project.one_per_burst = old
             self.preferences_valid = False
             self.selection_hint.set(str(exc))
             self.sync_controls()
@@ -256,13 +260,15 @@ class DesktopApp:
         pending = self.project and any(p.status == 'Pending' and not p.recycled for p in self.project.photos)
         analyzed = self.project and any(p.status in ('Keep', 'Review', 'Error') for p in self.project.photos if not p.recycled)
         changed = self.config_changed()
-        label = 'Reanalyze photos' if changed and analyzed else 'Resume analysis' if pending and analyzed else 'Analyze photos' if pending else 'Check for new photos'
+        label = ('Reanalyze photos' if changed and analyzed else 'Resume analysis' if pending and analyzed else
+                 'Analyze photos' if pending else 'Find duplicate / burst shots' if self.project and self.project.duplicates_pending() else 'Check for new photos')
         self.action_buttons['analyze'].configure(text=label if self.project else 'Analyze photos', state='normal' if ready else 'disabled')
         self.action_buttons['pause'].configure(state='normal' if self.busy else 'disabled')
         self.action_buttons['cleanup'].configure(state='normal' if ready and not pending and not changed and self.preferences_valid else 'disabled')
         self.action_buttons['finish'].configure(state='normal' if ready and not pending and not changed and self.preferences_valid else 'disabled')
         self.folder_button.configure(state='disabled' if self.busy else 'normal')
         self.count_control.configure(state='disabled' if self.busy else 'normal')
+        self.burst_control.configure(state='disabled' if self.busy else 'normal')
         self.recursive_control.configure(state='disabled' if self.busy else 'normal')
         for control in (self.shot_control, self.motion_control, self.style_control):
             control.configure(state='disabled' if self.busy else 'readonly')
@@ -273,6 +279,7 @@ class DesktopApp:
         photo = self.current() if self.project else None
         for button in self.photo_buttons:
             button.configure(state='normal' if ready and photo and not photo.recycled else 'disabled')
+        self.burst_button.configure(state='normal' if ready and photo and photo.duplicate_group else 'disabled')
         self.protected.set(bool(photo and photo.must_include))
         self.protection_control.configure(state='normal' if ready and photo and photo.decision == 'Keep' else 'disabled')
         if not self.project:
@@ -396,6 +403,7 @@ class DesktopApp:
                 self.analysis_stage = detail
                 self.stage_started = time.monotonic()
         if changed:
+            self.project.update_duplicate_groups()
             self.checkpoint()
             self.refresh()
             selected = self.current()
@@ -411,7 +419,7 @@ class DesktopApp:
             self.status.set(f'{completed}/{len(active)} processed. Stopping analysis; completed results are saved.')
             return
         stage = self.analysis_stage
-        if active and completed == len(active):
+        if active and completed == len(active) and not self.project.duplicates_pending():
             stage = 'Finalizing results…'
         elapsed = int(time.monotonic() - self.stage_started)
         suffix = f' ({elapsed}s on this step; Pause is available)' if elapsed >= 15 else ''
@@ -433,6 +441,7 @@ class DesktopApp:
         keeps = sum(p.decision == 'Keep' for p in self.project.photos)
         reviews = sum(p.decision in ('Review', 'Error', 'Unsupported') for p in self.project.photos)
         removal_names = {p.relative for p in self.project.cleanup_candidates()} if self.view.get() == 'Removal suggestions' and not issue else set()
+        duplicate_groups = self.project.duplicate_recommendations()
         for i, photo in enumerate(self.project.photos):
             view = self.view.get()
             show = (view == 'All' or view == photo.decision or
@@ -443,6 +452,9 @@ class DesktopApp:
                     view == 'Removal suggestions' and photo.relative in removal_names or
                     view == 'Final selection' and photo.relative in chosen or
                     view == 'Not chosen' and not photo.recycled and photo.relative not in chosen or
+                    view == 'Duplicates / bursts' and photo.duplicate_group in duplicate_groups or
+                    view == 'Best in bursts' and photo.duplicate_group in duplicate_groups and photo.duplicate_best or
+                    view == 'Burst alternatives' and photo.duplicate_group in duplicate_groups and not photo.duplicate_best or
                     view == 'Other Keep' and photo.decision == 'Keep' and photo.relative not in chosen)
             if show:
                 iid = str(i)
@@ -468,7 +480,7 @@ class DesktopApp:
             self.gallery.set_photos(self.project, desired, chosen, editable=not self.busy,
                                     selected=current[0] if current else None)
             target = f' / {self.project.target}' if self.project.target is not None else ''
-            self.gallery_summary.set(f'{len(desired)} photos shown · {len(chosen)}{target} chosen for delivery')
+            self.gallery_summary.set(f'{len(desired)} shown · {len(chosen)}{target} chosen · {len(duplicate_groups)} duplicate/burst groups')
         if self.busy:
             self.update_progress()
             return
@@ -481,7 +493,7 @@ class DesktopApp:
         pending = any(p.status == 'Pending' and not p.recycled for p in self.project.photos)
         self.status.set(issue or f'{active} source photos · {keeps} Keep · {reviews} Review · {selected}. ' +
                         ('Preferences changed — analyze to apply them.' if self.config_changed() else
-                         'Analysis pending.' if pending else 'More approved photos needed.' if short else 'Review cleanup or choose Finish project.'))
+                         'Analysis pending.' if pending else 'More distinct approved photos needed; you can also explicitly choose a burst alternate.' if short else 'Review cleanup or choose Finish project.'))
 
     def current(self):
         selection = self.table.selection()
@@ -517,6 +529,10 @@ class DesktopApp:
         from .finalize import show_finalization
         return show_finalization(self)
 
+    def compare_burst(self):
+        from .burst_review import show_burst
+        return show_burst(self)
+
     def preview(self, _=None):
         if self.cleaning:
             return
@@ -542,6 +558,9 @@ class DesktopApp:
             measurements += f'\nWhole-frame context: {photo.context_score:.1f}/100 (not a creativity rating)'
         if photo.photographic_profiles:
             measurements += '\nAutomatic photographic candidates: ' + ', '.join(photo.photographic_profiles)
+        if photo.duplicate_group:
+            measurements += f'\n{photo.duplicate_label} · ' + ('Exact visual/file copies' if photo.duplicate_kind == 'exact' else 'Similar burst candidates')
+            measurements += '\nRecommendation uses Keep status, overall quality and weakest assessable subject detail. Facial expressions are not rated.'
         self.details.set(f'{photo.relative}\nAI: {photo.status} · Keep score: {score}\nDecision: {photo.decision}\nStyle: {photo.style_label} ({style_source})' + measurements + '\n' + '\n'.join(photo.reasons))
         try:
             with Image.open(self.project.path_for(photo)) as original:
@@ -597,16 +616,24 @@ class DesktopApp:
             self.checkpoint()
             self.refresh()
 
-    def zoom(self):
+    def zoom(self, photo=None, parent=None):
         if self.busy:
             return
-        photo = self.current()
+        photo = photo or self.current()
         if not photo:
             return
         try:
             with Image.open(self.project.path_for(photo)) as original:
                 image = ImageOps.exif_transpose(original).convert('RGB')
-            window = tk.Toplevel(self.root)
+            window = tk.Toplevel(parent or self.root)
+            if parent:
+                window.transient(parent)
+                window.grab_set()
+                def close_zoom():
+                    window.destroy()
+                    if parent.winfo_exists():
+                        parent.grab_set()
+                window.protocol('WM_DELETE_WINDOW',close_zoom)
             window.title(f'100% — {photo.relative}')
             window.geometry('950x700')
             canvas = tk.Canvas(window)
@@ -618,6 +645,7 @@ class DesktopApp:
             canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set, scrollregion=(0, 0, image.width, image.height))
             canvas.photo = ImageTk.PhotoImage(image)
             canvas.create_image(0, 0, anchor='nw', image=canvas.photo)
+            return window
         except Exception as exc:
             messagebox.showerror('Inspect photo', str(exc))
 
@@ -871,6 +899,7 @@ class DesktopApp:
         rows = [f'Photos remaining in the original folder: {summary["remaining"]}',
                 f'Photos in your proposed selection: {summary["selected"]}{target}',
                 f'Accepted creative photos: {summary.get("creative_keeps", 0)}',
+                f'Duplicate / burst groups: {summary.get("duplicate_groups", 0)}',
                 f'Photos moved to the Recycle Bin: {summary["recycled"]}',
                 f'Review photos left in place: {summary["review"]}',
                 f'Marked photos not removed: {summary["marked"]}',
@@ -917,7 +946,22 @@ def main(smoke_test=False, root=None, splash=None):
         import tempfile
         import time
         with tempfile.TemporaryDirectory(prefix='iqa-startup-') as folder:
-            session = AnalysisSession(Project(folder))
+            # Exercise real fingerprinting and one-per-group selection in the
+            # packaged app, using only disposable generated photos.
+            from src.model_registry import engine_signature
+            image = Image.new('RGB',(48,48),(40,90,120))
+            exif = Image.Exif()
+            exif[36867] = '2026:11:22 10:00:00'
+            for name in ('copy-a.jpg','copy-b.jpg'):
+                image.save(Path(folder)/name,exif=exif)
+            project = Project(folder,assessment_signature=engine_signature())
+            project.scan()
+            for i,photo in enumerate(project.photos):
+                photo.status,photo.score = 'Keep',90.-i
+            project.refresh_duplicate_fingerprints()
+            if len(project.duplicate_recommendations()) != 1 or len(project.selection()) != 1:
+                raise RuntimeError('Duplicate recommendation smoke test failed.')
+            session = AnalysisSession(project)
             messages = []
             try:
                 deadline = time.monotonic() + 20

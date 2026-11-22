@@ -28,7 +28,12 @@ def assess_project(connection, data):
                 lambda photo: connection.send(('photo', asdict(photo))),
                 before_photo=lambda photo: connection.send(('stage', f'Assessing {photo.relative}…')),
             )
-        connection.send(('done', 'Analysis complete.'))
+        connection.send(('stage', 'Finding exact copies and similar burst shots…'))
+        project.refresh_duplicate_fingerprints(
+            progress=lambda photo: connection.send(('photo',asdict(photo))),
+            before_photo=lambda photo: connection.send(('stage',f'Checking duplicates: {photo.relative}…')))
+        connection.send(('inventory',[asdict(photo) for photo in project.photos]))
+        connection.send(('done', 'Analysis complete. Duplicate/burst recommendations are ready.'))
     except Exception as exc:
         connection.send(('error', str(exc)))
     finally:

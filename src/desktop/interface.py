@@ -99,6 +99,9 @@ def build(app):
     ttk.Label(count_bar, text='Final photo count (optional)', style='Muted.TLabel').pack(side='left', padx=(0,12))
     app.count_control = ttk.Entry(count_bar, textvariable=app.target, width=9)
     app.count_control.pack(side='left')
+    app.burst_control = ttk.Checkbutton(count_bar, text='Best shot per burst', variable=app.one_per_burst)
+    app.burst_control.pack(side='left', padx=(16,0))
+    hint(app.burst_control, 'Choose one recommended photo per exact-copy or burst group. Your explicit choices and protected photos are always preserved.')
     hint(app.count_control, 'Optional: leave blank for all suitable photos, or enter the size of your final selection.')
     options = ttk.Frame(setup, style='Card.TFrame')
     app.advanced_settings_open = False
@@ -159,12 +162,12 @@ def build(app):
     library = ttk.Frame(left, style='Card.TFrame')
     library.pack(fill='x', pady=(0, 10))
     ttk.Label(library, text='Photo library', style='Section.TLabel').pack(side='left')
-    filters = ttk.Combobox(library, textvariable=app.view, state='readonly', width=21, values=('All', 'Keep', 'Review', 'Final selection', 'Not chosen', 'Creative keeps', 'Creative to inspect', 'Removal suggestions', 'Other Keep', 'Pending', 'Marked for removal', 'Recycled'))
+    filters = ttk.Combobox(library, textvariable=app.view, state='readonly', width=21, values=('All', 'Keep', 'Review', 'Final selection', 'Not chosen', 'Duplicates / bursts', 'Best in bursts', 'Burst alternatives', 'Creative keeps', 'Creative to inspect', 'Removal suggestions', 'Other Keep', 'Pending', 'Marked for removal', 'Recycled'))
     filters.pack(side='right')
     filters.bind('<<ComboboxSelected>>', lambda _: app.refresh())
     quick_filters = ttk.Frame(left, style='Card.TFrame')
     quick_filters.pack(fill='x', pady=(0, 8))
-    for label, view in (('All photos', 'All'), ('Keep', 'Keep'), ('Review', 'Review'), ('Chosen', 'Final selection'), ('Not chosen', 'Not chosen')):
+    for label, view in (('All photos', 'All'), ('Keep', 'Keep'), ('Review', 'Review'), ('Chosen', 'Final selection'), ('Not chosen', 'Not chosen'), ('Bursts', 'Duplicates / bursts')):
         def filter_photos(value=view):
             app.view.set(value)
             app.refresh()
@@ -232,6 +235,8 @@ def build(app):
     creative_button.pack(anchor='w', pady=(8, 0))
     app.photo_buttons.append(creative_button)
     hint(creative_button, 'Approve an intentional creative effect. It enters Creative keeps and is excluded from automatic cleanup suggestions. Reset clears your decision.')
+    app.burst_button = ttk.Button(decisions, text='Compare duplicate / burst shots…', command=app.compare_burst, style='Card.TButton')
+    app.burst_button.pack(anchor='w', pady=(8,0))
     ttk.Button(decisions, text='Inspect at 100%', command=app.zoom, style='Card.TButton').pack(anchor='w', pady=(8, 0))
     inspection.pack(fill='both', expand=True)
     footer = ttk.Frame(root, style='Rounded.TFrame', padding=(18, 12))
