@@ -107,9 +107,11 @@ class LocalFeatureExtractor:
             face_gray = face_crop.convert("L")
             face_sharpness = self._calc_laplacian_var(face_gray)
             face_tenengrad = self._calc_tenengrad(np.array(face_gray))
+            face_motion = self._calc_motion_blur_ratio(np.array(face_gray))
         else:
             face_sharpness = 0.0
             face_tenengrad = 0.0
+            face_motion = None
 
         # 3. Composite Local Technical Score (0 to 100)
         # In a usable portrait:
@@ -152,6 +154,9 @@ class LocalFeatureExtractor:
             "subject_sharpness": round(subj_sharpness, 4),
             "local_contrast": round(subj_contrast, 4),
             "motion_blur_metric": round(motion_metric, 4),
+            "face_motion_metric": round(face_motion, 4) if face_motion is not None else None,
+            "subject_highlight_clipping": float(np.mean(subj_np >= 250)),
+            "subject_shadow_clipping": float(np.mean(subj_np <= 5)),
             "framing_defect_detected": framing_defect,
             "face_present": has_face,
             "face_orientation": face_orientation,
@@ -168,23 +173,30 @@ class LocalFeatureExtractor:
         for subject in people:
             features = self.extract(img, subject)
             face_box = subject.get("face_bbox")
-            assessable = bool(face_box and min(face_box[2]-face_box[0], face_box[3]-face_box[1]) >= 24)
+            assessable = bool(subject.get("face_detected") and face_box and min(face_box[2]-face_box[0], face_box[3]-face_box[1]) >= 24)
             if not assessable and features["face_present"]:
                 # Tiny faces cannot support reliable face focus measurements.
                 features = self.extract(img, dict(subject, face_detected=False))
             records.append(dict(features, subject_id=subject["subject_id"], face_assessable=assessable,
                                 face_detected=subject.get("face_detected", False)))
+            # A person's bounding box also contains background. Prefer an
+            # assessable face for motion evidence, retaining body evidence below.
+            records[-1]["body_motion_metric"] = features["motion_blur_metric"]
+            if assessable and features.get("face_motion_metric") is not None:
+                records[-1]["motion_blur_metric"] = features["face_motion_metric"]
         if not records:
             result = self.extract(img, {"subject_detected": False, "face_detected": False})
         else:
             result = dict(records[0])
-            for key in ("face_sharpness", "face_tenengrad", "subject_sharpness", "local_contrast"):
+            for key in ("face_sharpness", "face_tenengrad", "subject_sharpness", "local_contrast",
+                        "subject_highlight_clipping", "subject_shadow_clipping"):
                 result[key] = round(float(np.mean([r[key] for r in records])), 4)
             scores = [r["local_technical_score"] for r in records]
             # A sharp partner cannot conceal the other partner being out of focus.
             lower = min(scores) if len(scores) == 2 else float(np.percentile(scores, 20))
             result["local_technical_score"] = round(.5*float(np.mean(scores)) + .5*lower, 4)
             result["motion_blur_metric"] = round(float(np.percentile([r["motion_blur_metric"] for r in records], 80)), 4)
+            result["body_motion_metric"] = round(float(np.percentile([r["body_motion_metric"] for r in records], 80)), 4)
             result["face_present"] = any(r["face_present"] for r in records)
         if context.get("motion_intent") == "intentional":
             # Retain a static anchor test: intentional movement is not a blanket

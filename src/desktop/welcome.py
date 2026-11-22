@@ -13,10 +13,10 @@ CARDS = (
      'Choose the folder you copied from your camera. Include subfolders if needed. Leave the final count blank for all suitable photos, or enter a number for a smaller selection.',
      'Your originals stay in their existing location.'),
     ('Let the assessment guide you',
-     'Analyze sorts photos into Keep and Review. Select a photo to inspect its assessment. You can change a decision, protect an essential moment, or pause and resume analysis.',
+     'Analyze sorts photos into Keep and Review. Browse the thumbnail cards and filter All, Keep, Review or Chosen. Add any assessed photo to your chosen set, including a Review photo you want to deliver.',
      'AI proposes. You make the final decision.'),
     ('Clean up, then finish',
-     'Mark unwanted photos for removal and open Review cleanup. Only the photos you confirm go to the Recycle Bin. Finish project saves your decisions to a project file you can reopen later.',
+     'Open Review & finish folder to preview your chosen photos and the exact unchosen photos to recycle. Apply the confirmed cleanup, then save your project. You can also save without moving any photos.',
      'Automatic recovery protects work between saves.'),
 )
 

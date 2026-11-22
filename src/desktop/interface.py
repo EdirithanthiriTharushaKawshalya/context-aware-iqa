@@ -94,13 +94,23 @@ def build(app):
     ttk.Entry(setup, textvariable=app.source, state='readonly').grid(row=0, column=1, columnspan=4, sticky='ew')
     app.folder_button = ttk.Button(setup, text='Choose folder…', command=app.choose_folder, style='Card.TButton')
     app.folder_button.grid(row=0, column=5, padx=(12, 0))
-    options = ttk.Frame(setup, style='Card.TFrame')
-    options.grid(row=1, column=0, columnspan=6, sticky='ew', pady=(14, 0))
-    for column, label in enumerate(('Final photo count', 'Selection style', 'Shot intent', 'Motion intent')):
-        ttk.Label(options, text=label, style='Muted.TLabel').grid(row=0, column=column, sticky='w', padx=(0, 20))
-    app.count_control = ttk.Entry(options, textvariable=app.target, width=17)
-    app.count_control.grid(row=1, column=0, sticky='ew', padx=(0, 16), pady=5)
+    count_bar = ttk.Frame(setup, style='Card.TFrame')
+    count_bar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=(12, 0))
+    ttk.Label(count_bar, text='Final photo count (optional)', style='Muted.TLabel').pack(side='left', padx=(0,12))
+    app.count_control = ttk.Entry(count_bar, textvariable=app.target, width=9)
+    app.count_control.pack(side='left')
     hint(app.count_control, 'Optional: leave blank for all suitable photos, or enter the size of your final selection.')
+    options = ttk.Frame(setup, style='Card.TFrame')
+    app.advanced_settings_open = False
+    def toggle_settings():
+        app.advanced_settings_open = not app.advanced_settings_open
+        if app.advanced_settings_open:
+            options.grid(row=2, column=0, columnspan=6, sticky='ew', pady=(12, 0))
+        else:
+            options.grid_remove()
+    ttk.Button(count_bar, text='Assessment settings…', command=toggle_settings, padding=(10,5)).pack(side='right')
+    for column, label in enumerate(('Selection style', 'Shot intent', 'Motion intent'), 1):
+        ttk.Label(options, text=label, style='Muted.TLabel').grid(row=0, column=column, sticky='w', padx=(0, 20))
     for column, attr, variable, values in (
         (1, 'style_control', app.style, ('Balanced', 'Strict quality')),
         (2, 'shot_control', app.shot, ('auto', 'portrait', 'couple', 'group', 'candid', 'detail', 'scene')),
@@ -116,7 +126,7 @@ def build(app):
         options.columnconfigure(column, weight=1)
     app.recursive_control = ttk.Checkbutton(options, text='Include subfolders', variable=app.recursive, command=app.configuration_changed)
     app.recursive_control.grid(row=1, column=4, sticky='w')
-    ttk.Label(options, textvariable=app.selection_hint, style='Muted.TLabel').grid(row=2, column=0, columnspan=5, sticky='w')
+    ttk.Label(setup, textvariable=app.selection_hint, style='Muted.TLabel').grid(row=3, column=0, columnspan=6, sticky='w', pady=(6,0))
 
     toolbar = ttk.Frame(root, padding=(20, 12))
     toolbar.pack(fill='x')
@@ -124,10 +134,11 @@ def build(app):
     for name, label, action, button_style in (
         ('analyze', 'Analyze photos', app.analyze, 'Primary.TButton'),
         ('pause', 'Pause', app.pause, 'TButton'),
-        ('cleanup', 'Review cleanup', app.cleanup, 'TButton'),
-        ('finish', 'Finish project…', app.finish, 'Primary.TButton')):
+        ('cleanup', 'Removal suggestions', app.cleanup, 'TButton'),
+        ('finish', 'Review & finish folder…', app.finalize, 'Primary.TButton')):
         button = ttk.Button(toolbar, text=label, command=action, style=button_style)
-        button.pack(side='right' if name == 'finish' else 'left', padx=(0, 8))
+        if name != 'cleanup':
+            button.pack(side='right' if name == 'finish' else 'left', padx=(0, 8))
         app.action_buttons[name] = button
 
     app.metrics = {name: tk.StringVar(value='—') for name in ('Photos', 'Keep', 'Review', 'Selected')}
@@ -143,18 +154,34 @@ def build(app):
     body = ttk.Panedwindow(root, orient='horizontal')
     left = ttk.Frame(body, style='Rounded.TFrame', padding=16)
     right = ttk.Frame(body, style='Rounded.TFrame', padding=16)
-    body.add(left, weight=2)
-    body.add(right, weight=3)
+    body.add(left, weight=3)
+    body.add(right, weight=2)
     library = ttk.Frame(left, style='Card.TFrame')
     library.pack(fill='x', pady=(0, 10))
     ttk.Label(library, text='Photo library', style='Section.TLabel').pack(side='left')
-    filters = ttk.Combobox(library, textvariable=app.view, state='readonly', width=21, values=('All', 'Keep', 'Review', 'Final selection', 'Other Keep', 'Pending', 'Marked for removal', 'Recycled'))
+    filters = ttk.Combobox(library, textvariable=app.view, state='readonly', width=21, values=('All', 'Keep', 'Review', 'Final selection', 'Not chosen', 'Creative keeps', 'Creative to inspect', 'Removal suggestions', 'Other Keep', 'Pending', 'Marked for removal', 'Recycled'))
     filters.pack(side='right')
     filters.bind('<<ComboboxSelected>>', lambda _: app.refresh())
-    table_frame = ttk.Frame(left, style='Card.TFrame')
-    table_frame.pack(fill='both', expand=True)
-    app.table = ttk.Treeview(table_frame, columns=('decision', 'score', 'pin'), selectmode='browse', height=6)
-    for col, label, width in (('#0', 'PHOTO', 250), ('decision', 'DECISION', 135), ('score', 'SCORE', 65), ('pin', 'PROTECTED', 95)):
+    quick_filters = ttk.Frame(left, style='Card.TFrame')
+    quick_filters.pack(fill='x', pady=(0, 8))
+    for label, view in (('All photos', 'All'), ('Keep', 'Keep'), ('Review', 'Review'), ('Chosen', 'Final selection'), ('Not chosen', 'Not chosen')):
+        def filter_photos(value=view):
+            app.view.set(value)
+            app.refresh()
+        ttk.Button(quick_filters, text=label, command=filter_photos, padding=(8, 5)).pack(side='left', padx=(0, 4))
+    app.gallery_summary = tk.StringVar(value='Choose a folder to start.')
+    gallery_summary_label = ttk.Label(left, textvariable=app.gallery_summary, style='Muted.TLabel', wraplength=680)
+    gallery_summary_label.pack(fill='x', pady=(0, 8))
+    app.library_tabs = ttk.Notebook(left)
+    app.library_tabs.pack(fill='both', expand=True)
+    from .gallery import PhotoGallery
+    app.gallery = PhotoGallery(app.library_tabs, on_select=app.select_gallery_photo,
+                               on_toggle=app.toggle_chosen, on_open=app.open_gallery_photo)
+    table_frame = ttk.Frame(app.library_tabs, style='Card.TFrame')
+    app.library_tabs.add(app.gallery, text='  Photos  ')
+    app.library_tabs.add(table_frame, text='  Details list  ')
+    app.table = ttk.Treeview(table_frame, columns=('decision', 'score', 'pin', 'style'), selectmode='browse', height=6)
+    for col, label, width in (('#0', 'PHOTO', 180), ('decision', 'DECISION', 125), ('score', 'KEEP SCORE', 85), ('pin', 'PROTECTED', 85), ('style', 'STYLE', 85)):
         app.table.heading(col, text=label)
         app.table.column(col, width=width, minwidth=width if col != '#0' else 120, stretch=col == '#0')
     for tag, color in (('Keep', '#24765b'), ('Review', '#926528'), ('Excluded', '#aa3653'), ('Pending', '#827b90'), ('Recycled', '#827b90')):
@@ -164,7 +191,7 @@ def build(app):
     scroll.pack(side='right', fill='y')
     app.table.pack(fill='both', expand=True)
     app.table.bind('<<TreeviewSelect>>', app.preview)
-    ttk.Label(right, text='Photo inspection', style='Section.TLabel').pack(anchor='w', pady=(0, 10))
+    ttk.Label(right, text='Selected photo', style='Section.TLabel').pack(anchor='w', pady=(0, 10))
     inspection = ttk.Frame(right, style='Card.TFrame')
     photo_page = ttk.Frame(inspection, style='Card.TFrame', height=1, width=1)
     photo_page.pack_propagate(False)
@@ -201,6 +228,10 @@ def build(app):
     app.protection_control = ttk.Checkbutton(decisions, text='Protect this photo — always include it', variable=app.protected, command=app.pin)
     app.protection_control.pack(anchor='w', pady=(8, 0))
     hint(app.protection_control, 'Essential moments stay in your selection and are protected from cleanup.')
+    creative_button = ttk.Button(decisions, text='Keep as creative', command=app.keep_creative, style='Card.TButton')
+    creative_button.pack(anchor='w', pady=(8, 0))
+    app.photo_buttons.append(creative_button)
+    hint(creative_button, 'Approve an intentional creative effect. It enters Creative keeps and is excluded from automatic cleanup suggestions. Reset clears your decision.')
     ttk.Button(decisions, text='Inspect at 100%', command=app.zoom, style='Card.TButton').pack(anchor='w', pady=(8, 0))
     inspection.pack(fill='both', expand=True)
     footer = ttk.Frame(root, style='Rounded.TFrame', padding=(18, 12))
@@ -224,9 +255,19 @@ def build(app):
             if small:
                 workflow.pack_forget()
                 metrics.pack_forget()
+                quick_filters.pack_forget()
+                header.configure(padding=(18,8))
+                setup.configure(padding=(18,8))
+                toolbar.configure(padding=(20,6))
+                footer.configure(padding=(18,6))
             else:
                 workflow.pack(fill='x', before=setup)
                 metrics.pack(fill='x', padx=20, pady=(0, 10), before=body)
+                quick_filters.pack(fill='x', pady=(0,8), before=gallery_summary_label)
+                header.configure(padding=(24,16))
+                setup.configure(padding=(18,14))
+                toolbar.configure(padding=(20,12))
+                footer.configure(padding=(18,12))
         if resize_timer:
             root.after_cancel(resize_timer)
         def redraw():

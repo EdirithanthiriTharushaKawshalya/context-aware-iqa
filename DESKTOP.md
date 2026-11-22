@@ -5,6 +5,34 @@ The Streamlit website retains its existing layout and research workflow, with
 the shared Context Aware IQA name and logo. Both
 interfaces reuse `src.pipeline.Phase4Pipeline`.
 
+Version 0.7.0 makes the thumbnail gallery the default photo library. Use All,
+Keep, Review, Chosen and Not chosen to browse the folder. Click a card to inspect
+it; its bottom button adds or removes that photo from the delivery set. Adding
+a Review photo records an explicit Keep override while retaining its AI Review
+assessment. Explicitly chosen and protected photos take priority over automatic
+choices, so adding a photo to a full target replaces an automatic choice. If all
+target slots are explicit/protected, remove one first or increase the target.
+Removing a chosen photo leaves its quality decision and original file intact;
+automatic selection fills the available slot from other eligible Keep photos.
+
+Assessment settings are collapsed until needed; the optional delivery count stays
+visible. A Details list tab retains scores and filenames. Thumbnails load in the
+background, and only visible rows are drawn, with a bounded image cache.
+
+**Review & finish folder** shows three visual lists: chosen originals to keep,
+assessed unchosen photos proposed for recycling, and protected/unreadable files
+left untouched. This explicit final-folder plan can include creative candidates,
+which are identified in its warning. A second confirmation approves the exact
+removal list. Source changes or changed choices invalidate the plan. Cleanup
+keeps the existing path checks, durable journal, cancellation and Recycle Bin
+behavior; it never permanently deletes originals. Successful cleanup leads to
+project saving and the finish summary. Saving without cleanup is also available.
+The older suggestion-based cleanup remains under Project → Removal suggestions.
+
+Version 0.6.0 adds automatic photographic candidates for low-key scenes,
+silhouettes, soft backgrounds and dreamy motion, with protection from automatic
+removal suggestions. These observations work without a trained style model.
+
 Version 0.4.0 introduces a violet-accented desktop workspace, live collection
 counts, colored review decisions, contextual help, and a dark photo viewer.
 The shared logo stays in `src/images/icon.png`; `icon.ico` supplies Windows
@@ -85,6 +113,57 @@ PyTorch and torchvision are required by the shared engine. The separate
 7. To return another day, use **Project → Open saved project…**. Scores and manual
    decisions are reused for unchanged files. Changing shot or motion intent after
    assessment requires reanalysis confirmation; manual decisions are preserved.
+
+## Creative photos and removal suggestions
+
+Automatic photographic candidates now work without manual labels or a trained
+style head: low-light/low-key appearance, possible silhouettes, sharp subjects
+against soft backgrounds, and possible slow-shutter/dreamy motion. The inspection
+panel explains the detected evidence. A possible effect is not a confirmed
+artistic intention or a Creative style judgment. Dark scenes with sharp subjects
+can recover the shadow-clipping deduction. Supported silhouettes use clear
+contour separation instead of requiring illuminated facial texture. Background
+softness alone does not lower an otherwise sharp subject's rule score.
+
+Possible creative photos are excluded from automatic removal suggestions, even
+when their delivery decision remains Review. They appear in Creative to inspect.
+Explicitly marking an unprotected photo for removal remains available. Ambiguous
+dreamy or dark photos remain Review rather than receiving fabricated approval.
+The normal Analyze workflow enables this behavior automatically; no annotation
+or training step is required. Automatic inference does not identify a beach,
+sunset, moving vehicle, or the photographer's artistic intent with certainty.
+
+The delivery decision and photographic style are separate. **Keep** means the
+photo is approved for delivery. **Creative** identifies a deliberate effect; it
+does not mean every photo using that effect is suitable for delivery. A good
+creative shot belongs in **Creative keeps**. A creative shot with unresolved
+quality or detection evidence appears in **Creative to inspect**.
+
+The inspection panel shows technical detail and whole-frame context scores.
+Neither is a creativity rating. Automatic Creative/Standard recognition is
+available only when the installed model includes a style classifier trained on
+photographer labels. Otherwise the style is **Unknown**. The application does
+not call background blur or motion proof of creativity.
+
+Use **Keep as creative** to approve a readable, assessed photo yourself. This
+decision is saved in the project and survives reassessment. **Reset** clears
+your manual decision. The Creative keeps filter includes model-approved and
+photographer-approved creative photos, and the inspection panel identifies the
+source. Use Protect as well if a photo must fit within a limited target count.
+
+The **Removal suggestions** filter shows the same candidates as Review cleanup.
+Photos identified as Creative are excluded from automatic removal suggestions,
+including creative photos outside the target count and creative photos awaiting
+inspection. You may still explicitly Mark removal for an unprotected creative
+photo. Nothing moves until you select the exact files in Review cleanup and
+confirm the Recycle Bin operation. A Review decision alone is not proof that a
+photo is bad.
+
+Automatic recognition is not yet validated on the existing photo collection.
+Label delivery suitability and Creative/Standard style independently using
+`python -m streamlit run label_photos.py`, then train and evaluate on separate
+events as described in PHOTO_ASSESSMENT.md. Saved project approvals are not
+silently reused as independent research ground truth.
 
 ## Recovery and saving
 

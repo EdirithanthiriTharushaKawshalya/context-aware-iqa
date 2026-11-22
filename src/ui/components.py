@@ -4,7 +4,7 @@ Modular UI Components for Streamlit Demonstrator
 
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
-from PIL import Image
+from PIL import Image, ImageOps
 import streamlit as st
 
 from src.pipeline import PipelineConfig, PipelineResult
@@ -189,12 +189,14 @@ def render_sidebar_controls(
     raw_img = None
     if selected_image_path and Path(selected_image_path).is_file():
         try:
-            raw_img = Image.open(selected_image_path).convert("RGB")
+            with Image.open(selected_image_path) as source:
+                raw_img = ImageOps.exif_transpose(source).convert("RGB")
         except Exception as e:
             st.error(f"Error opening image: {e}")
     elif uploaded_image is not None:
         try:
-            raw_img = Image.open(uploaded_image).convert("RGB")
+            with Image.open(uploaded_image) as source:
+                raw_img = ImageOps.exif_transpose(source).convert("RGB")
         except Exception as e:
             st.error(f"Error loading uploaded file: {e}")
 
@@ -223,7 +225,8 @@ def render_kpi_dashboard(
 ):
     """Renders top row of 4 KPI metrics cards."""
     is_keep = result.classification == "Keep"
-    gt_label = manifest_meta.get("expert_score_usability", "N/A") if manifest_meta else "Custom"
+    human_verified = bool(manifest_meta and manifest_meta.get("label_source") == "human" and manifest_meta.get("labeler_id"))
+    gt_label = manifest_meta.get("expert_score_usability", "N/A") if human_verified else "Unverified" if manifest_meta else "Custom"
     defect_flag = manifest_meta.get("local_defect_flag", "None") if manifest_meta else "None"
     img_id = manifest_meta.get("image_id", "") if manifest_meta else ""
     baseline_score = baseline_map.get(img_id, "N/A")
@@ -232,10 +235,14 @@ def render_kpi_dashboard(
     c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.3, 1.3])
 
     with c1:
-        st.markdown(
-            render_html_kpi_score(result.unified_score, result.base_score, config.threshold),
-            unsafe_allow_html=True,
-        )
+        if result.probability_keep is not None:
+            st.metric("Learned Keep score", f"{result.unified_score:.1f}/100")
+            st.caption(f"Decision threshold: {result.decision_threshold:.1f}. Missing evidence can still require Review.")
+        else:
+            st.markdown(
+                render_html_kpi_score(result.unified_score, result.base_score, config.threshold),
+                unsafe_allow_html=True,
+            )
     with c2:
         st.markdown(
             render_html_decision_badge(is_keep),
@@ -317,6 +324,19 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
     st.markdown('<div class="section-header">Multi-Stage Feature & Penalty Breakdown</div>', unsafe_allow_html=True)
 
     context = result.assessment_context
+    if result.photographic_profiles:
+        st.info("Automatic photographic candidates: " + ", ".join(result.photographic_profiles))
+    st.caption(f"Decision source: {result.decision_source}")
+    st.caption(f"Photographic style: {result.creative_style}. Whole-frame context is not a creativity rating.")
+    if result.creative_style == "Unknown":
+        st.caption("Automatic style recognition needs a model trained on photographer Creative/Standard labels.")
+    for note in result.assessment_notes:
+        st.info(note)
+    if result.probability_keep is not None:
+        st.caption("The breakdown below describes the rules baseline. The final decision uses the learned score and evidence checks.")
+        if result.model_evidence and result.classification == "Review":
+            with st.expander("Learned evidence toward Review (associations, not confirmed defects)"):
+                st.dataframe(result.model_evidence, use_container_width=True)
     st.caption(f"Shot: {context.get('shot_type', 'auto')} | Detected people: {context.get('subject_count', 0)} | Motion: {context.get('motion_intent', 'auto')}")
     for reason in result.review_reasons:
         st.warning(reason)
@@ -452,7 +472,7 @@ def render_score_breakdown(result: PipelineResult, config: PipelineConfig):
     formula_html = (
         f'<div class="formula-container">'
         f'<b>Formula:</b> [{config.w_local:.2f} × {result.s_local:.1f}] + [{config.w_global:.2f} × {result.s_global:.1f}] = {result.base_score:.1f} base'
-        f'{deduction_str} = <span style="color: {score_color}; font-weight:700;">{result.unified_score:.1f} final</span>'
+        f'{deduction_str} = <span style="color: {score_color}; font-weight:700;">{result.rule_score if result.rule_score is not None else result.unified_score:.1f} rules score</span>'
         f'</div>'
     )
     st.markdown(formula_html, unsafe_allow_html=True)
@@ -498,7 +518,8 @@ def render_diagnostics_and_table(
                     "Image ID": img_id,
                     "Burst": r.get("burst_id", ""),
                     "Filename": Path(r.get("file_path", "")).name,
-                    "Expert Label": r.get("expert_score_usability", ""),
+                    "Recorded Label": r.get("expert_score_usability", ""),
+                    "Label Source": r.get("label_source") or "unverified",
                     "Defect Flag": r.get("local_defect_flag", "None"),
                     "Baseline BRISQUE": baseline_map.get(img_id, "N/A"),
                 })

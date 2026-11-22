@@ -13,7 +13,10 @@ def assess_project(connection, data):
         project = Project(**data)
         connection.send(('stage', 'Scanning for new or changed photos…'))
         project.scan()
-        connection.send(('inventory', [asdict(photo) for photo in project.photos]))
+        from src.model_registry import engine_signature
+        project.prepare_assessment(engine_signature(project.shot_type, project.motion_intent))
+        connection.send(('engine_inventory', {'signature': project.assessment_signature,
+                                              'photos': [asdict(photo) for photo in project.photos]}))
         if any(photo.status == 'Pending' and not photo.recycled for photo in project.photos):
             connection.send(('stage', 'Loading assessment engine…'))
             from src.pipeline import Phase4Pipeline, PipelineConfig

@@ -1,0 +1,17 @@
+{
+  "photos_in_annotation_sheet": 788,
+  "source_photos_available": 788,
+  "independent_human_labels": 0,
+  "pretrained_resnet18_available": true,
+  "optional_face_package_installed": true,
+  "optional_musiq_package_installed": true,
+  "ready_to_train": false,
+  "remaining_dependency": "train needs independently labelled Keep and Review photos from separate events",
+  "localization_probe": {
+    "person_detector_status": "ok",
+    "face_detector_status": "ok",
+    "subject_detected": true,
+    "face_detected": true,
+    "note": "One resized source image; confirms runtime loading, not detector accuracy."
+  }
+}

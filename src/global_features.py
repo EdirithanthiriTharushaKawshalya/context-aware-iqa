@@ -65,8 +65,12 @@ class GlobalFeatureExtractor:
         # In professional event photography, a sharp subject on a softly blurred
         # background (bokeh) is a deliberate aesthetic choice, not a defect!
         dof_separation = 1.0
+        background_motion = None
+        background_energy = None
+        context = (localization or {}).get("assessment_context", {})
         boxes = []
-        if localization and localization.get("subject_detected"):
+        if (localization and localization.get("subject_detected") and
+                context.get("shot_type") not in ("detail", "scene")):
             boxes = [s["subject_bbox"] for s in localization.get("subjects", [])]
             if not boxes and localization.get("subject_bbox"):
                 boxes = [localization["subject_bbox"]]
@@ -80,6 +84,20 @@ class GlobalFeatureExtractor:
                 gy, gx = np.gradient(gray_np.astype(np.float32))
                 energy = gx**2 + gy**2
                 dof_separation = float((energy[subject_mask].mean()+1e-6)/(energy[bg_mask].mean()+1e-6))
+                # Exclude box boundaries: artificial mask/crop edges must not
+                # masquerade as sharp background detail.
+                interior = bg_mask.copy()
+                interior[1:] &= bg_mask[:-1]
+                interior[:-1] &= bg_mask[1:]
+                interior[:, 1:] &= bg_mask[:, :-1]
+                interior[:, :-1] &= bg_mask[:, 1:]
+                interior[[0, -1], :] = False
+                interior[:, [0, -1]] = False
+                if interior.sum() > 1000:
+                    vx, vy = float(np.var(gx[interior])), float(np.var(gy[interior]))
+                    total = vx + vy
+                    background_energy = float(energy[interior].mean())
+                    background_motion = float((1 + abs(vx-vy)/(total+1e-6)) / (1+np.log1p(total)))
 
         # 4. Composite Global Context Score (0 to 100)
         # Scaled sharpness + contrast + aesthetic DOF reward - exposure penalty
@@ -89,7 +107,6 @@ class GlobalFeatureExtractor:
         # Reward natural DOF separation (values between 1.2 and 5.0 indicate beautiful subject isolation)
         dof_bonus = float(np.clip((dof_separation - 1.0) * 4.0, 0.0, 15.0))
 
-        context = (localization or {}).get("assessment_context", {})
         if context.get("shot_type") in ("group", "scene"):
             dof_bonus = 0.0
         global_score = (0.50 * norm_sharpness + 0.50 * norm_contrast + dof_bonus) - exposure_penalty
@@ -103,4 +120,7 @@ class GlobalFeatureExtractor:
             "shadow_underexposure_ratio": round(shadow_clipping, 4),
             "dof_separation_ratio": round(dof_separation, 4),
             "global_context_score": round(global_score, 4),
+            "background_motion_metric": background_motion,
+            "background_gradient_energy": background_energy,
+            "background_assessable": background_motion is not None,
         }

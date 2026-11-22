@@ -4,7 +4,8 @@ def apply_policy(base_score, localization, features, context, config):
     face_penalty = motion_penalty = 0.0
     reasons = list(context["review_reasons"])
     metrics = features.get("subject_metrics", [])
-    if context["faces_required"]:
+    silhouette = context.get("silhouette_supported", False)
+    if context["faces_required"] and not silhouette:
         if metrics:
             missing = sum(not m["face_detected"] for m in metrics)
             # Detector failure is uncertainty rather than evidence of a bad face.
@@ -20,7 +21,7 @@ def apply_policy(base_score, localization, features, context, config):
         elif not features.get("face_present"):
             reasons.append("Visible faces could not be verified for this posed shot.")
     motion = float(features.get("motion_blur_metric", 0.))
-    if motion > config.motion_thresh and context["motion_intent"] != "intentional":
+    if motion > config.motion_thresh and context["motion_intent"] != "intentional" and not silhouette:
         motion_penalty = min(score, (motion-config.motion_thresh)*config.motion_scale)
         score -= motion_penalty
         if context["motion_intent"] == "auto":

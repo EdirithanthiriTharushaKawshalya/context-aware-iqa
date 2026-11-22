@@ -1,0 +1,23 @@
+{
+  "purpose": "Pretrained runtime verification only; no Keep/Review prediction or accuracy claim",
+  "probe_image_size": [
+    854,
+    1280
+  ],
+  "resnet18_initial_weights": "IMAGENET1K_V1",
+  "encoder_frozen": true,
+  "image_embedding_dimensions": 512,
+  "subject_embedding_dimensions": 512,
+  "person_detector_status": "ok",
+  "face_detector_status": "ok",
+  "detected_people": 1,
+  "detected_faces": 1,
+  "localization_seconds_including_initialization": 3.427019900002051,
+  "cnn_embedding_seconds": 0.23118459997931495,
+  "musiq_raw_quality_score": 66.2802505493164,
+  "musiq_probe_image_size": [
+    342,
+    512
+  ],
+  "musiq_note": "General quality score on a resized probe; no project Keep/Review threshold has been fitted."
+}

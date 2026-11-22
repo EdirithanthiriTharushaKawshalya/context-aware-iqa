@@ -69,8 +69,8 @@ def test_rows_scores_filters_and_progress_refresh_before_worker_finishes(app):
     session = begin(app, first_result_then_wait)
     pump_until(app, lambda: app.table.item('0', 'values')[0] == 'Keep')
     assert session.alive and app.busy
-    assert app.table.item('0', 'values') == ('Keep', '87.0', 'No')
-    assert app.table.item('1', 'values') == ('Pending', '—', 'No')
+    assert app.table.item('0', 'values') == ('Keep', '87.0', 'No', 'Unknown')
+    assert app.table.item('1', 'values') == ('Pending', '—', 'No', 'Unknown')
     assert float(app.bar['value']) == 1 and float(app.bar['maximum']) == 2
     assert '1/2 processed' in app.status.get()
     app.view.set('Keep')

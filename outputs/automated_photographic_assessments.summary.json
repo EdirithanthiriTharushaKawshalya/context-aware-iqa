@@ -1,0 +1,18 @@
+{
+  "photos": 788,
+  "source": "automated_rules",
+  "human_labels_added": 0,
+  "errors": 0,
+  "possible_creative": 39,
+  "keep": 657,
+  "review": 131,
+  "profiles": {
+    "Low-light / low-key": 43,
+    "Possible silhouette": 2,
+    "Possible slow-shutter / dreamy motion": 9,
+    "Sharp subject / soft background": 28
+  },
+  "implementation_sha256": "21c672d297953fc0b85271fcc306b9c08b471e2e03949eada0f629273bb6f438",
+  "max_side": 640,
+  "note": "Never use these predictions as independent labels to train or validate the same system."
+}

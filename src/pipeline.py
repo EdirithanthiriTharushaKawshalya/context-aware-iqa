@@ -32,6 +32,8 @@ class PipelineConfig:
     shot_type: str = "auto"
     motion_intent: str = "auto"
     subject_quality_threshold: float = 35.0
+    decision_mode: str = "auto"  # auto uses a compatible human-trained model when present
+    model_path: Optional[str] = None
 
     @classmethod
     def from_tuned(cls, config_path: Optional[str] = None) -> "PipelineConfig":
@@ -82,6 +84,17 @@ class PipelineResult:
     localization: Dict[str, Any] = field(default_factory=dict)
     local_features: Dict[str, Any] = field(default_factory=dict)
     global_features: Dict[str, Any] = field(default_factory=dict)
+    decision_source: str = "rules"
+    probability_keep: Optional[float] = None
+    decision_threshold: Optional[float] = None
+    rule_score: Optional[float] = None
+    assessment_notes: list = field(default_factory=list)
+    model_evidence: list = field(default_factory=list)
+    model_identifier: str = ""
+    creative_style: str = "Unknown"
+    creative_probability: Optional[float] = None
+    photographic_profiles: list = field(default_factory=list)
+    possible_creative: bool = False
 
 
 class Phase4Pipeline:
@@ -99,6 +112,36 @@ class Phase4Pipeline:
         self.localizer = localizer or SemanticLocalizer()
         self.local_extractor = local_extractor or LocalFeatureExtractor()
         self.global_extractor = global_extractor or GlobalFeatureExtractor()
+        self._classifier_cache = None
+
+    def _classifier(self, config):
+        from src.context_classifier import ContextClassifier
+        from src.model_registry import active_model_path
+        from src.training_data import implementation_fingerprint
+        path = active_model_path(config.model_path)
+        if not path.is_file():
+            if config.decision_mode == "learned":
+                raise FileNotFoundError(f"Train a human-labelled context classifier first: {path}")
+            return None, None
+        try:
+            fingerprint = implementation_fingerprint()
+            signature = (str(path.resolve()), path.stat().st_mtime_ns, path.stat().st_size, fingerprint)
+            if self._classifier_cache and self._classifier_cache[0] == signature:
+                return self._classifier_cache[1], None
+            model = ContextClassifier.load(path)
+            if model.metadata.get("training_protocol") != "human_event_holdout_v1":
+                raise ValueError("Classifier lacks independent-label/event-validation metadata")
+            if model.metadata.get("implementation_sha256") != fingerprint:
+                raise ValueError("Classifier was trained with a different assessment implementation; retrain it before use")
+            import hashlib
+            with path.open("rb") as handle:
+                model.checkpoint_sha256 = hashlib.file_digest(handle, "sha256").hexdigest()
+            self._classifier_cache = signature, model
+            return model, None
+        except Exception as exc:
+            if config.decision_mode == "learned":
+                raise ValueError(f"Cannot use context classifier: {exc}") from exc
+            return None, f"Using rules because the learned model could not be loaded: {exc}"
 
     def run(self, img: Image.Image, config: Optional[PipelineConfig] = None) -> PipelineResult:
         """
@@ -106,6 +149,8 @@ class Phase4Pipeline:
         """
         if config is None:
             config = PipelineConfig.from_tuned()
+        if config.decision_mode not in ("auto", "rules", "learned"):
+            raise ValueError("Unsupported decision_mode")
 
         rgb_img = ImageOps.exif_transpose(img).convert("RGB")
 
@@ -122,9 +167,29 @@ class Phase4Pipeline:
         # 3. Global Context Features
         global_feat = self.global_extractor.extract(rgb_img, loc)
 
+        from src.photographic_intent import inspect_photographic_intent
+        try:
+            exposure_time = img.getexif().get(33434)
+            if exposure_time is None:
+                exposure_time = img.getexif().get_ifd(34665).get(33434)
+        except (AttributeError, KeyError, TypeError, ValueError, OSError):
+            exposure_time = None
+        intent = inspect_photographic_intent(rgb_img, loc, local_feat, global_feat, exposure_time)
+        context["photographic_profiles"] = intent["profiles"]
+        context["silhouette_supported"] = intent["supported_silhouette"]
+
         # 4. Multimodal Fusion & Defect Penalties
         s_local = float(local_feat["local_technical_score"])
         s_global = float(global_feat["global_context_score"])
+        # Preserve raw measurements for learned features and diagnostics. These
+        # adjustments change only the rule baseline, with explicit evidence.
+        if intent["supported_silhouette"]:
+            contour_score = min(90., min(r["contrast"] for r in intent["silhouette_evidence"])/2)
+            s_local = max(s_local, contour_score)
+        if intent["supported_silhouette"] or (intent["low_light"] and intent["sharp_subject"]):
+            s_global = min(100., s_global + max(0., (global_feat.get("shadow_underexposure_ratio", 0)-.08)*40))
+        if intent["separated_background_blur"]:
+            s_global = max(s_global, s_local-10.)
         has_face = bool(local_feat["face_present"])
         base_score = (config.w_local * s_local) + (config.w_global * s_global)
 
@@ -147,8 +212,63 @@ class Phase4Pipeline:
         if review_reasons and config.ablation_mode == "full":
             classification = "Review"
 
+        rule_score = unified_score
+        decision_source, probability_keep = "rules", None
+        decision_threshold = config.threshold
+        notes, model_evidence, model_identifier = list(intent["notes"]), [], ""
+        if intent["supported_silhouette"]:
+            notes.append("Rules assess silhouette contour separation instead of requiring illuminated facial texture. This is an automated hypothesis.")
+        creative_style, creative_probability = "Unknown", None
+        if config.decision_mode != "rules" and config.ablation_mode == "full":
+            classifier, load_note = self._classifier(config)
+            if load_note:
+                notes.append(load_note)
+            if classifier is not None:
+                entry = classifier.prepare_entry(rgb_img, {"localization": loc, "local_features": local_feat,
+                                                          "global_features": global_feat})
+                prediction = classifier.predict(entry)
+                decision_source = f"learned_{classifier.model_type}"
+                model_identifier = classifier.checkpoint_sha256
+                probability_keep = prediction["probability_keep"]
+                creative_style = prediction.get("creative_style", "Unknown")
+                creative_probability = prediction.get("creative_probability")
+                unified_score = probability_keep * 100.
+                decision_threshold = classifier.threshold * 100.
+                classification = prediction["classification"]
+                model_evidence = prediction["review_evidence"]
+                # Quality heuristics must not veto the learned creative decision.
+                # Missing evidence is still an explicit request for inspection.
+                from src.context_classifier import missing_evidence_reasons
+                review_reasons = missing_evidence_reasons(loc, local_feat)
+                if review_reasons:
+                    classification = "Review"
+                    decision_source = "learned_with_evidence_check"
+                elif classification == "Review":
+                    review_reasons.append("The learned classifier flags this photo for inspection.")
+                    if model_evidence:
+                        names = ", ".join(item["feature"].replace("_", " ") for item in model_evidence)
+                        review_reasons.append(f"Model evidence toward Review: {names}. These are learned associations, not confirmed defects.")
+                notes.append("The learned score estimates Keep suitability; it is not a calibrated artistic-quality rating.")
+        if classification == "Review":
+            # Evidence-based observations, not claims of certain artistic failure.
+            if local_feat.get("local_technical_score", 100.) < config.subject_quality_threshold:
+                review_reasons.append("Low subject/detail sharpness; inspect focus at full resolution.")
+            if motion_penalty_pts > 0 and decision_source == "rules":
+                review_reasons.append("Directional blur is present in the assessed subject/detail region.")
+            if local_feat.get("subject_highlight_clipping", 0.) > .15:
+                review_reasons.append("Substantial highlight clipping in the assessed subject/detail region.")
+            if local_feat.get("subject_shadow_clipping", 0.) > .15 and not intent["supported_silhouette"]:
+                review_reasons.append("Substantial shadow clipping in the assessed subject/detail region.")
+            if not review_reasons:
+                review_reasons.append("Combined technical evidence is below the Keep threshold; inspect focus, exposure and contrast.")
+        if (global_feat.get("background_assessable") and
+                global_feat.get("background_motion_metric", 0.) > config.motion_thresh and
+                local_feat.get("motion_blur_metric", 1.) <= config.motion_thresh):
+            notes.append("Background blur is stronger than subject blur; background movement alone is not a subject-focus defect.")
+        review_reasons = list(dict.fromkeys(review_reasons))
+
         # 5. Heuristic confidence indicator
-        dist_to_boundary = abs(unified_score - config.threshold)
+        dist_to_boundary = abs(unified_score - decision_threshold)
         c_margin = min(1.0, dist_to_boundary / 15.0)  # saturation at 15 points distance
         c_subj = float(loc.get("subject_confidence", 0.8))
         c_face = float(loc.get("face_confidence", 0.7)) if has_face else 0.5
@@ -196,4 +316,15 @@ class Phase4Pipeline:
             localization=loc,
             local_features=local_feat,
             global_features=global_feat,
+            decision_source=decision_source,
+            probability_keep=probability_keep,
+            decision_threshold=decision_threshold,
+            rule_score=round(rule_score, 2),
+            assessment_notes=notes,
+            model_evidence=model_evidence,
+            model_identifier=model_identifier,
+            creative_style=creative_style,
+            creative_probability=creative_probability,
+            photographic_profiles=intent["profiles"],
+            possible_creative=intent["possible_creative"],
         )

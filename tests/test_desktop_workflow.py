@@ -100,6 +100,48 @@ def test_protection_checkbox_keeps_essential_photo_in_limited_selection(app, tmp
     assert 'c.jpg' not in [p.relative for p in app.project.cleanup_candidates()]
 
 
+def test_creative_approval_filters_reset_and_cleanup_suggestions(app, tmp_path):
+    assessed(app, source(tmp_path))
+    photo = app.project.photos[0]
+    photo.status = 'Review'
+    photo.technical_score, photo.context_score = 40., 65.
+    app.refresh()
+    app.table.selection_set('0')
+    app.keep_creative()
+    assert photo.creative_keep and photo.status == 'Review'
+    assert Project.load(app.project_file).photos[0].creative_keep
+    app.view.set('Creative keeps')
+    app.refresh()
+    assert app.table.get_children() == ('0',)
+    app.preview()
+    assert 'Photographer' in app.details.get()
+    assert 'not a creativity rating' in app.details.get()
+    app.view.set('Removal suggestions')
+    app.refresh()
+    assert '0' not in app.table.get_children()
+    app.view.set('Creative keeps')
+    app.refresh()
+    app.table.selection_set('0')
+    app.decide('')
+    assert not photo.creative_keep and photo.style_label == 'Unknown'
+    assert app.table.get_children() == ()
+    app.view.set('Removal suggestions')
+    app.refresh()
+    assert app.table.get_children() == ('0',)
+
+
+def test_machine_creative_review_has_separate_inspection_filter(app, tmp_path):
+    assessed(app, source(tmp_path))
+    photo = app.project.photos[1]
+    photo.status, photo.creative_style, photo.creative_probability = 'Review', 'Creative', .9
+    app.view.set('Creative to inspect')
+    app.refresh()
+    assert app.table.get_children() == ('1',)
+    app.view.set('Creative keeps')
+    app.refresh()
+    assert app.table.get_children() == ()
+
+
 def test_finish_saves_named_project_and_summary_then_keeps_new_edits_private(app, tmp_path, monkeypatch):
     folder = source(tmp_path)
     assessed(app, folder)
@@ -279,3 +321,22 @@ def test_reanalysis_with_changed_intent_preserves_manual_decisions(app, tmp_path
     assert all(p.status == 'Pending' for p in app.project.photos)
     assert app.project.photos[0].override == 'Keep' and app.project.photos[0].must_include
     assert app.project.shot_type == 'group'
+
+
+def test_automatic_creative_candidates_are_visible_and_not_removal_suggestions(app, tmp_path):
+    assessed(app, source(tmp_path))
+    photo = app.project.photos[0]
+    photo.status = 'Review'
+    photo.possible_creative = True
+    photo.photographic_profiles = ['Possible slow-shutter / dreamy motion']
+    app.view.set('Creative to inspect')
+    app.refresh()
+    assert app.table.get_children() == ('0',)
+    assert app.table.item('0', 'values')[-1] == 'Possible creative'
+    app.table.selection_set('0')
+    app.preview()
+    assert 'Automatic candidate' in app.details.get()
+    assert 'dreamy motion' in app.details.get()
+    app.view.set('Removal suggestions')
+    app.refresh()
+    assert '0' not in app.table.get_children()

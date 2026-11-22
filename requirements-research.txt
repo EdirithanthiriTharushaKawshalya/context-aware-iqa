@@ -1,0 +1,8 @@
+# Install into the project's Python environment.
+-r requirements-desktop.txt
+streamlit>=1.40
+pytest>=8
+# Optional MUSIQ comparison (its dependencies may require a different Python version):
+# pip install pyiqa
+# Optional face localization:
+# pip install facexlib

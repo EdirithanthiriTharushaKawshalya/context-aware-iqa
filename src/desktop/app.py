@@ -55,6 +55,7 @@ class DesktopApp:
         self.project_menu.add_separator()
         self.project_menu.add_command(label='Copy selection…', command=self.export)
         self.project_menu.add_command(label='Finish & save…', command=self.finish)
+        self.project_menu.add_command(label='Removal suggestions…', command=self.cleanup)
         self.project_menu.add_separator()
         self.project_menu.add_command(label='Exit', command=self.close)
         menu.add_cascade(label='Project', menu=self.project_menu)
@@ -259,7 +260,7 @@ class DesktopApp:
         self.action_buttons['analyze'].configure(text=label if self.project else 'Analyze photos', state='normal' if ready else 'disabled')
         self.action_buttons['pause'].configure(state='normal' if self.busy else 'disabled')
         self.action_buttons['cleanup'].configure(state='normal' if ready and not pending and not changed and self.preferences_valid else 'disabled')
-        self.action_buttons['finish'].configure(state='normal' if ready else 'disabled')
+        self.action_buttons['finish'].configure(state='normal' if ready and not pending and not changed and self.preferences_valid else 'disabled')
         self.folder_button.configure(state='disabled' if self.busy else 'normal')
         self.count_control.configure(state='disabled' if self.busy else 'normal')
         self.recursive_control.configure(state='disabled' if self.busy else 'normal')
@@ -284,7 +285,7 @@ class DesktopApp:
             stage = 'Project saved — continue reviewing or start another folder'
         else:
             stage = 'Review & clean up — then Finish project'
-        self.workflow.set(f'Choose folder  →  Analyze  →  Review & clean up  →  Finish & save     |     {stage}')
+        self.workflow.set(f'1. Choose folder  →  2. Analyze  →  3. Choose your photos  →  4. Review & finish     |     {stage}')
 
     def analyze(self):
         if not self.idle() or not self.project:
@@ -372,7 +373,14 @@ class DesktopApp:
         updated = set()
         index = {photo.relative: i for i, photo in enumerate(self.project.photos)}
         for event, detail in messages:
-            if event == 'inventory':
+            if event == 'engine_inventory':
+                if self.project.assessment_signature != detail['signature']:
+                    self.project.finished_at, self.project.finish_summary = None, {}
+                self.project.assessment_signature = detail['signature']
+                self.project.photos = [Photo(**photo) for photo in detail['photos']]
+                index = {photo.relative: i for i, photo in enumerate(self.project.photos)}
+                changed = True
+            elif event == 'inventory':
                 self.project.photos = [Photo(**photo) for photo in detail]
                 index = {photo.relative: i for i, photo in enumerate(self.project.photos)}
                 changed = True
@@ -424,19 +432,24 @@ class DesktopApp:
         desired = []
         keeps = sum(p.decision == 'Keep' for p in self.project.photos)
         reviews = sum(p.decision in ('Review', 'Error', 'Unsupported') for p in self.project.photos)
+        removal_names = {p.relative for p in self.project.cleanup_candidates()} if self.view.get() == 'Removal suggestions' and not issue else set()
         for i, photo in enumerate(self.project.photos):
             view = self.view.get()
             show = (view == 'All' or view == photo.decision or
                     view == 'Marked for removal' and photo.decision == 'Excluded' or
                     view == 'Review' and photo.decision in ('Error', 'Unsupported') or
+                    view == 'Creative keeps' and photo.creative_keep or
+                    view == 'Creative to inspect' and (photo.style_label == 'Creative' or photo.possible_creative) and photo.decision == 'Review' or
+                    view == 'Removal suggestions' and photo.relative in removal_names or
                     view == 'Final selection' and photo.relative in chosen or
+                    view == 'Not chosen' and not photo.recycled and photo.relative not in chosen or
                     view == 'Other Keep' and photo.decision == 'Keep' and photo.relative not in chosen)
             if show:
                 iid = str(i)
                 desired.append(iid)
                 decision = 'Marked for removal' if photo.decision == 'Excluded' else photo.decision
                 score = f'{photo.score:.1f}' if photo.status in ('Keep', 'Review') else '—'
-                values = (decision, score, 'Yes' if photo.must_include else 'No')
+                values = (decision, score, 'Yes' if photo.must_include else 'No', photo.style_label)
                 if self.table.exists(iid):
                     self.table.item(iid, text=photo.relative, values=values, tags=(photo.decision,))
                 else:
@@ -450,6 +463,12 @@ class DesktopApp:
         if previous and self.table.exists(previous[0]) and self.table.selection() != previous:
             self.table.selection_set(previous[0])
             self.table.see(previous[0])
+        if hasattr(self, 'gallery'):
+            current = self.table.selection()
+            self.gallery.set_photos(self.project, desired, chosen, editable=not self.busy,
+                                    selected=current[0] if current else None)
+            target = f' / {self.project.target}' if self.project.target is not None else ''
+            self.gallery_summary.set(f'{len(desired)} photos shown · {len(chosen)}{target} chosen for delivery')
         if self.busy:
             self.update_progress()
             return
@@ -471,6 +490,33 @@ class DesktopApp:
         index = int(selection[0])
         return self.project.photos[index] if index < len(self.project.photos) else None
 
+    def select_gallery_photo(self, iid):
+        if self.table.exists(iid):
+            self.table.selection_set(iid)
+            self.table.focus(iid)
+            self.preview()
+
+    def open_gallery_photo(self, iid):
+        self.select_gallery_photo(iid)
+        self.zoom()
+
+    def toggle_chosen(self, iid):
+        if not self.idle() or not self.project or not self.update():
+            return
+        try:
+            photo = self.project.photos[int(iid)]
+            chosen = {p.relative for p in self.project.selection()}
+            self.project.choose_photo(photo.relative, photo.relative not in chosen)
+            self.checkpoint()
+            self.refresh()
+            self.select_gallery_photo(iid)
+        except (ValueError, IndexError) as exc:
+            messagebox.showinfo('Chosen photos', str(exc))
+
+    def finalize(self):
+        from .finalize import show_finalization
+        return show_finalization(self)
+
     def preview(self, _=None):
         if self.cleaning:
             return
@@ -478,12 +524,25 @@ class DesktopApp:
         self.sync_controls()
         if not photo:
             return
+        if hasattr(self, 'gallery'):
+            self.gallery.selected = self.table.selection()[0]
+            self.gallery.render()
         if photo.recycled:
             self.preview_label.configure(image='', text='Moved to the Recycle Bin. Restore it there, then reopen this project.')
             self.details.set(photo.relative)
             return
         score = f'{photo.score:.1f}' if photo.status in ('Keep', 'Review') else 'Not assessed'
-        self.details.set(f'{photo.relative}\nAI: {photo.status} · Score: {score}\nDecision: {photo.decision}\n' + '\n'.join(photo.reasons))
+        style_source = 'Photographer' if photo.creative_override else 'Model' if photo.creative_probability is not None else 'Not assessed'
+        if photo.possible_creative and not photo.creative_override and photo.creative_probability is None:
+            style_source = 'Automatic candidate'
+        measurements = ''
+        if photo.technical_score is not None:
+            measurements += f'\nTechnical detail: {photo.technical_score:.1f}/100'
+        if photo.context_score is not None:
+            measurements += f'\nWhole-frame context: {photo.context_score:.1f}/100 (not a creativity rating)'
+        if photo.photographic_profiles:
+            measurements += '\nAutomatic photographic candidates: ' + ', '.join(photo.photographic_profiles)
+        self.details.set(f'{photo.relative}\nAI: {photo.status} · Keep score: {score}\nDecision: {photo.decision}\nStyle: {photo.style_label} ({style_source})' + measurements + '\n' + '\n'.join(photo.reasons))
         try:
             with Image.open(self.project.path_for(photo)) as original:
                 image = ImageOps.exif_transpose(original).convert('RGB')
@@ -508,10 +567,26 @@ class DesktopApp:
                 messagebox.showinfo('Cannot keep this file', 'Only successfully assessed photos can enter the selection.')
                 return
             photo.override = decision
+            if decision == '':
+                photo.creative_override = ''
+                photo.selection_choice = ''
             if photo.decision != 'Keep':
                 photo.must_include = False
             self.checkpoint()
             self.refresh()
+
+    def keep_creative(self):
+        """An explicit photographer judgment, preserved across reassessment."""
+        if not self.idle():
+            return
+        photo = self.current()
+        if not photo or photo.recycled or photo.status not in ('Keep', 'Review'):
+            messagebox.showinfo('Cannot approve this file', 'Analyze a readable photo before approving it as creative.')
+            return
+        photo.override = 'Keep'
+        photo.creative_override = 'Creative'
+        self.checkpoint()
+        self.refresh()
 
     def pin(self):
         if not self.idle():
@@ -664,6 +739,44 @@ class DesktopApp:
         except Exception as exc:
             self.cleanup_events.put(('error', str(exc)))
 
+    def start_final_cleanup(self, expected_chosen, expected_remove):
+        """Called only after approval of the visual finalization plan."""
+        if self.busy or self.config_changed():
+            raise ValueError('The project changed. Reopen the final folder preview.')
+        plan = self.project.finalization_plan()
+        if (tuple(p.relative for p in plan['chosen']) != tuple(expected_chosen) or
+                tuple(p.relative for p in plan['remove']) != tuple(expected_remove)):
+            raise ValueError('The chosen photos changed. Reopen the final folder preview.')
+        if not expected_chosen or not expected_remove:
+            raise ValueError('Choose photos and review a nonempty removal list first.')
+        if self.project.target is not None and len(expected_chosen) < self.project.target:
+            raise ValueError('Reach the requested photo count before removing the rest.')
+        # Verify every retained delivery original and removal candidate before
+        # marking anything, preserving existing source-containment checks.
+        for photo in plan['chosen'] + plan['remove']:
+            self.project.checked_cleanup_path(photo)
+        inventory = [(p.relative, p.size, p.modified, p.recycled) for p in self.project.photos]
+        self.project.scan()
+        if inventory != [(p.relative, p.size, p.modified, p.recycled) for p in self.project.photos]:
+            self.checkpoint()
+            self.refresh()
+            raise ValueError('The source folder changed. Analyze new photos and reopen the final folder preview.')
+        old = [(photo, photo.override) for photo in plan['remove']]
+        try:
+            for photo in plan['remove']:
+                photo.override = 'Excluded'
+            self.checkpoint()
+        except Exception:
+            for photo, override in old:
+                photo.override = override
+            raise
+        self.busy = self.cleaning = True
+        self.finish_after_cleanup = True
+        self.sync_controls()
+        self.cleanup_stop.clear()
+        self.status.set('Moving the confirmed unchosen photos to the Recycle Bin…')
+        threading.Thread(target=self.cleanup_worker, args=(list(expected_remove),), daemon=True).start()
+
     def poll_cleanup(self):
         try:
             while True:
@@ -672,6 +785,8 @@ class DesktopApp:
                     self.status.set(f'Moved {detail[0]}/{detail[1]} confirmed files to the Recycle Bin.')
                 else:
                     self.busy = self.cleaning = False
+                    finish_after = getattr(self, 'finish_after_cleanup', False)
+                    self.finish_after_cleanup = False
                     self.refresh()
                     if event == 'error':
                         messagebox.showerror('Cleanup stopped', detail)
@@ -679,6 +794,8 @@ class DesktopApp:
                         result = f'{len(detail["recycled"])} photos moved to the Recycle Bin. Kept photos remain in the source folder.'
                         if detail['errors']:
                             messagebox.showerror('Cleanup stopped', result + '\n\n' + '\n'.join(f'{name}: {error}' for name, error in detail['errors'].items()))
+                        elif finish_after and not detail['cancelled'] and not self.close_requested:
+                            self.finish()
                         elif not self.close_requested:
                             messagebox.showinfo('Cleanup paused' if detail['cancelled'] else 'Cleanup complete', result)
         except queue.Empty:
@@ -753,6 +870,7 @@ class DesktopApp:
         target = f' (target: {summary["target"]})' if summary['target'] is not None else ''
         rows = [f'Photos remaining in the original folder: {summary["remaining"]}',
                 f'Photos in your proposed selection: {summary["selected"]}{target}',
+                f'Accepted creative photos: {summary.get("creative_keeps", 0)}',
                 f'Photos moved to the Recycle Bin: {summary["recycled"]}',
                 f'Review photos left in place: {summary["review"]}',
                 f'Marked photos not removed: {summary["marked"]}',

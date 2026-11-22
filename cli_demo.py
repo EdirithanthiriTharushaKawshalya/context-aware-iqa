@@ -86,6 +86,8 @@ def parse_args():
     from src.scene_context import SHOT_TYPES, MOTION_INTENTS
     parser.add_argument("--shot-type", choices=SHOT_TYPES, default="auto")
     parser.add_argument("--motion-intent", choices=MOTION_INTENTS, default="auto")
+    parser.add_argument("--decision-mode", choices=("auto", "rules", "learned"), default="auto")
+    parser.add_argument("--model-path", help="Path to a trained logistic or CNN context classifier")
     return parser.parse_args()
 
 
@@ -99,7 +101,7 @@ def print_single_evaluation(
     """Prints a structured, colored terminal dashboard for a single image."""
     is_keep = result.classification == "Keep"
     dec_color = "green bold" if is_keep else "red bold"
-    dec_badge = "[green bold]KEEP (USABLE)[/]" if is_keep else "[red bold]REVIEW (CULLED)[/]"
+    dec_badge = "[green bold]KEEP (USABLE)[/]" if is_keep else "[red bold]REVIEW (INSPECT)[/]"
 
     console.print()
     console.print(Panel(
@@ -114,7 +116,9 @@ def print_single_evaluation(
 
     t_summary.add_row("Final Unified Quality Score", f"[{'green' if is_keep else 'red'} bold]{result.unified_score:.2f} / 100[/]")
     t_summary.add_row("Decision Classification", dec_badge)
-    t_summary.add_row("Decision Threshold", f"{config.threshold:.1f} (Separation Margin: {result.dist_to_boundary:+.2f} pts)")
+    boundary = result.decision_threshold if result.decision_threshold is not None else config.threshold
+    t_summary.add_row("Decision Threshold", f"{boundary:.1f} (Separation Margin: {result.dist_to_boundary:+.2f} pts)")
+    t_summary.add_row("Decision source", result.decision_source)
     t_summary.add_row(
         "Confidence & Uncertainty",
         f"[cyan bold]{result.overall_confidence_pct:.1f}%[/] ({result.uncertainty_level}) | Tol: +/-{result.margin_of_error:.1f} pts"
@@ -124,7 +128,8 @@ def print_single_evaluation(
         gt_label = meta.get("expert_score_usability", "N/A")
         defect_tag = meta.get("local_defect_flag", "None")
         match = "[green]MATCH[/]" if gt_label == result.classification else "[yellow]DIVERGENT[/]"
-        t_summary.add_row("Ground Truth Expert Label", f"[yellow bold]{gt_label}[/] ({match}) | Defect: [italic]{defect_tag}[/]")
+        label_kind = "Human photographer label" if meta.get("label_source") == "human" and meta.get("labeler_id") else "Recorded label (unverified)"
+        t_summary.add_row(label_kind, f"[yellow bold]{gt_label}[/] ({match}) | Defect: [italic]{defect_tag}[/]")
     if baseline_score:
         t_summary.add_row("Phase 3 Baseline (BRISQUE)", f"[dim]{baseline_score}[/] (Naive Full-Frame)")
 
@@ -139,6 +144,10 @@ def print_single_evaluation(
     console.print(f"Shot: {result.assessment_context.get('shot_type')} | People: {result.assessment_context.get('subject_count')}")
     for reason in result.review_reasons:
         console.print(f"Review: {reason}")
+    for note in result.assessment_notes:
+        console.print(note)
+    if result.probability_keep is not None:
+        console.print("The breakdown below describes the rules baseline; the learned score determines the quality decision.")
     local_f = result.local_features
     global_f = result.global_features
 
@@ -322,14 +331,14 @@ def generate_markdown_report(results: List[Dict[str, Any]], config: PipelineConf
         "# Context-Aware Image Quality Assessment (IQA) — Phase 4 Research Demonstration",
         "",
         "## Executive Summary",
-        "Traditional No-Reference IQA algorithms (such as BRISQUE, NIQE) fail on professional event photography",
-        "because they misinterpret intentional shallow depth-of-field (bokeh) as quality degradation, while failing to detect",
-        "critical semantic flaws such as severed framing or motion blur. The Phase 4 Context-Aware pipeline solves this",
-        "by combining deep semantic localization, local subject sharpness, global context modeling, and anomaly penalty engines.",
+        "This demonstration records the current pipeline's predictions and technical evidence.",
+        "Recorded manifest labels have unverified origins unless independent human provenance is supplied.",
+        "Agreement with these recorded labels does not establish accuracy on unseen events.",
+        "Use the event-separated research experiment for comparisons against independent photographer judgments.",
         "",
         "### Key Benchmark Results",
         "",
-        "| Image ID | Defect Flag | Ground Truth | Baseline (BRISQUE) | Context-Aware Score | Decision | Confidence | Ground Truth Match |",
+        "| Image ID | Recorded Defect Flag | Recorded Label | Baseline (BRISQUE) | Context-Aware Score | Decision | Heuristic Confidence | Recorded Label Agreement |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
     ]
 
@@ -348,9 +357,8 @@ def generate_markdown_report(results: List[Dict[str, Any]], config: PipelineConf
     lines.extend([
         "",
         "## Core Insights Demonstrated",
-        "1. **Depth-of-Field (Bokeh) Resilience**: On sharp portraits (`bday_01`), our model rewards subject isolation ($DOF > 2.0x$) achieving **63.2**, whereas traditional baseline falsely penalizes background blur.",
-        "2. **Motion Blur Penalty**: On motion-degraded bursts (`bday_17`), the directional gradient anisotropy metric flags blur ($> 0.45$) and applies points deduction, dropping the score to **43.3** (`Review`).",
-        "3. **Framing Defect Cap**: On severely cropped subjects (`bday_44`), the semantic localizer flags `HEAD_CROPPED`, capping the score at **12.9** (`Review`), matching expert culling criteria.",
+        "Background blur, subject focus and exposure are measured separately. Artistic suitability requires independent labels.",
+        "Review requests inspection and is not a confirmed defect diagnosis or a discard instruction.",
         "",
         "---",
         "*Generated automatically by Context-Aware IQA Phase 4 CLI Engine.*",
@@ -369,6 +377,8 @@ def main():
         ablation_mode=args.ablation,
         shot_type=args.shot_type,
         motion_intent=args.motion_intent,
+        decision_mode=args.decision_mode,
+        model_path=args.model_path,
     )
     pipeline = Phase4Pipeline()
     export_dir = Path(args.export_dir)

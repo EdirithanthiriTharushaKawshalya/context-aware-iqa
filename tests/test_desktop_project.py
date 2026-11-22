@@ -103,3 +103,38 @@ def test_project_cannot_escape_selected_folder(tmp_path):
     project = Project(str(tmp_path), photos=[Photo('../outside.jpg', 0, 0)])
     with pytest.raises(ValueError, match='outside'):
         project.path_for(project.photos[0])
+
+
+def test_creative_photos_are_not_automatic_removal_suggestions():
+    project = Project('.', target=1, photos=[
+        Photo('standard.jpg', 0, 0, 'Keep', 95),
+        Photo('creative.jpg', 0, 0, 'Keep', 80, creative_style='Creative'),
+        Photo('uncertain-creative.jpg', 0, 0, 'Review', 35, creative_style='Creative'),
+        Photo('review.jpg', 0, 0, 'Review', 20),
+    ])
+    assert [p.relative for p in project.cleanup_candidates()] == ['review.jpg']
+    assert project.summary()['creative_keeps'] == 1
+    creative = project.photos[1]
+    creative.override = 'Excluded'  # The photographer can still explicitly remove one.
+    assert [p.relative for p in project.cleanup_candidates()] == ['creative.jpg', 'review.jpg']
+
+
+def test_analysis_persists_machine_style_and_preserves_photographer_creative_override(tmp_path):
+    project = collection(tmp_path)
+    photo = next(p for p in project.photos if p.status == 'Pending')
+    photo.override, photo.creative_override = 'Keep', 'Creative'
+    pipeline = SimpleNamespace(run=lambda image, config: SimpleNamespace(
+        unified_score=35, classification='Review', review_reasons=['Possible blur'],
+        s_local=40., s_global=30., creative_style='Standard', creative_probability=.2))
+    project.analyze(pipeline, None, threading.Event(), lambda _: None)
+    assert photo.status == 'Review' and photo.creative_keep
+    assert photo.creative_style == 'Standard' and photo.style_label == 'Creative'
+    assert photo.technical_score == 40. and photo.context_score == 30.
+    path = tmp_path/'creative.iqa.json'
+    project.save(path)
+    restored = Project.load(path)
+    kept = next(p for p in restored.photos if p.relative == photo.relative)
+    assert kept.creative_keep and kept.creative_probability == .2
+    restored.prepare_assessment('new-engine')
+    assert kept.status == 'Pending' and kept.style_label == 'Creative'
+    assert kept.creative_style == 'Unknown' and kept.creative_probability is None

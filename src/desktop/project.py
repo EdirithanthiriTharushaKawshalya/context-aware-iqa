@@ -25,10 +25,29 @@ class Photo:
     signature: str = ''
     group: str = ''
     recycled: bool = False
+    decision_source: str = 'rules'
+    model_identifier: str = ''
+    technical_score: float | None = None
+    context_score: float | None = None
+    creative_style: str = 'Unknown'
+    creative_probability: float | None = None
+    creative_override: str = ''
+    photographic_profiles: list = field(default_factory=list)
+    possible_creative: bool = False
+    selection_choice: str = ''
 
     @property
     def decision(self):
         return 'Recycled' if self.recycled else self.override or self.status
+
+    @property
+    def style_label(self):
+        return self.creative_override or ("Possible creative" if self.possible_creative and
+                                          self.creative_style == 'Unknown' else self.creative_style)
+
+    @property
+    def creative_keep(self):
+        return self.decision == 'Keep' and self.style_label == 'Creative'
 
 
 @dataclass
@@ -43,6 +62,21 @@ class Project:
     cleanup_history: list = field(default_factory=list)
     finished_at: str | None = None
     finish_summary: dict = field(default_factory=dict)
+    assessment_signature: str = ''
+
+    def prepare_assessment(self, signature):
+        """Refresh old engine results while retaining human overrides/protection."""
+        if self.assessment_signature != signature:
+            for photo in self.photos:
+                if not photo.recycled and photo.status in ('Keep', 'Review', 'Error', 'Pending'):
+                    photo.status, photo.score, photo.reasons = 'Pending', 0., []
+                    photo.decision_source, photo.model_identifier = '', ''
+                    photo.technical_score = photo.context_score = photo.creative_probability = None
+                    photo.creative_style = 'Unknown'
+                    photo.photographic_profiles = []
+                    photo.possible_creative = False
+            self.finished_at, self.finish_summary = None, {}
+            self.assessment_signature = signature
 
     def summary(self):
         active = [photo for photo in self.photos if not photo.recycled]
@@ -55,6 +89,7 @@ class Project:
             'marked': sum(photo.decision == 'Excluded' for photo in active),
             'recycled': sum(photo.recycled for photo in self.photos),
             'target': self.target,
+            'creative_keeps': sum(photo.creative_keep for photo in active),
         }
 
     def finish(self, path):
@@ -127,11 +162,12 @@ class Project:
     def selection(self):
         if self.target is not None and (type(self.target) is not int or self.target < 1):
             raise ValueError('Target must be at least one.')
-        eligible = [p for p in self.photos if p.decision == 'Keep' and p.status in ('Keep', 'Review')]
-        pinned = sorted([p for p in eligible if p.must_include], key=lambda p: p.relative)
+        eligible = [p for p in self.photos if p.decision == 'Keep' and p.status in ('Keep', 'Review')
+                    and (p.selection_choice != 'exclude' or p.must_include)]
+        pinned = sorted([p for p in eligible if p.must_include or p.selection_choice == 'include'], key=lambda p: p.relative)
         if self.target is not None and len(pinned) > self.target:
-            raise ValueError('Must-include count exceeds the target. Increase the target or unpin photos.')
-        candidates = sorted([p for p in eligible if not p.must_include], key=lambda p: (-p.score, p.relative))
+            raise ValueError('Must-include or explicitly chosen count exceeds the target. Increase the target or remove a chosen photo.')
+        candidates = sorted([p for p in eligible if p not in pinned], key=lambda p: (-p.score, p.relative))
         if self.style == 'Balanced':
             seen = {p.group for p in pinned if p.group}
             first, remaining = [], []
@@ -146,12 +182,41 @@ class Project:
             return pinned + candidates
         return pinned + candidates[:max(0, self.target - len(pinned))]
 
+    def choose_photo(self, relative, include):
+        """Edit delivery membership independently of the original AI assessment."""
+        photo = next((p for p in self.photos if p.relative == relative), None)
+        if not photo or photo.recycled or photo.status not in ('Keep', 'Review'):
+            raise ValueError('Analyze a readable photo before choosing it for delivery.')
+        if not include and photo.must_include:
+            raise ValueError('Unprotect this photo before removing it from the chosen set.')
+        old = photo.override, photo.selection_choice
+        photo.selection_choice = 'include' if include else 'exclude'
+        if include:
+            photo.override = 'Keep'
+        try:
+            self.selection()
+        except ValueError:
+            photo.override, photo.selection_choice = old
+            raise
+
+    def finalization_plan(self):
+        """Explicit folder cleanup plan; creation never marks or moves files."""
+        if any(p.status == 'Pending' and not p.recycled for p in self.photos):
+            raise ValueError('Finish analysis before finalizing the folder.')
+        chosen = self.selection()
+        names = {p.relative for p in chosen}
+        outside = [p for p in self.photos if not p.recycled and p.relative not in names]
+        removable = [p for p in outside if not p.must_include and p.status in ('Keep', 'Review')]
+        retained = [p for p in outside if p not in removable]
+        return {'chosen': chosen, 'remove': removable, 'retained': retained}
+
     def cleanup_candidates(self):
         """Suggestions only; explicit approval is required separately."""
         selected = {photo.relative for photo in self.selection()}
         return [photo for photo in self.photos if not photo.recycled and not photo.must_include and (
-            photo.override == 'Excluded' or photo.decision == 'Review' or
-            self.target is not None and photo.decision == 'Keep' and photo.relative not in selected)]
+            photo.override == 'Excluded' or (photo.style_label != 'Creative' and not photo.possible_creative) and (
+                photo.decision == 'Review' or
+                self.target is not None and photo.decision == 'Keep' and photo.relative not in selected))]
 
     def checked_cleanup_path(self, photo):
         relative = Path(photo.relative)
@@ -242,7 +307,18 @@ class Project:
                     raise ValueError('Assessment returned an invalid score.')
                 photo.score = float(result.unified_score)
                 photo.status = result.classification
+                photo.decision_source = getattr(result, 'decision_source', 'rules')
+                photo.model_identifier = getattr(result, 'model_identifier', '')
+                photo.technical_score = getattr(result, 's_local', None)
+                photo.context_score = getattr(result, 's_global', None)
+                photo.creative_style = getattr(result, 'creative_style', 'Unknown')
+                photo.creative_probability = getattr(result, 'creative_probability', None)
+                photo.photographic_profiles = list(getattr(result, 'photographic_profiles', []))
+                photo.possible_creative = getattr(result, 'possible_creative', False)
                 photo.reasons = list(result.review_reasons)
+                photo.reasons.extend(getattr(result, 'assessment_notes', []))
+                if getattr(result, 'probability_keep', None) is not None:
+                    photo.reasons.append(f'Learned Keep score: {result.unified_score:.1f}/100; threshold: {result.decision_threshold:.1f}.')
                 if photo.status == 'Review' and not photo.reasons:
                     photo.reasons = ['Quality score is below the Keep threshold.']
                 # Coarse visual similarity heuristic, not identity or event recognition.
