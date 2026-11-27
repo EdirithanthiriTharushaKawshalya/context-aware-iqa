@@ -1,13 +1,13 @@
 # Build from the project root: python -m PyInstaller desktop.spec
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_dynamic_libs, copy_metadata
 from src.training_data import IMPLEMENTATION_FILES
 
 a = Analysis(
     ['desktop_app.py'],
     pathex=[],
-    binaries=[],
+    binaries=collect_dynamic_libs('rawpy'),
     # Retain the implementation evidence used to validate trained models.
-    datas=[('src/images/icon.png', 'src/images'), ('src/images/splash-landscape.png', 'src/images')] + [('src/' + name, 'src') for name in IMPLEMENTATION_FILES],
+    datas=[('src/images/icon.png', 'src/images'), ('src/images/splash-mirrored-dusk.png', 'src/images')] + [('src/' + name, 'src') for name in IMPLEMENTATION_FILES] + copy_metadata('rawpy') + copy_metadata('ExifRead'),
     hiddenimports=collect_submodules('torchvision'),
     hookspath=[],
     runtime_hooks=[],

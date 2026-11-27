@@ -44,7 +44,7 @@ class Splash(tk.Toplevel):
         from PIL import Image, ImageOps, ImageTk
         assets = Path(__file__).resolve().parents[1] / 'images'
         picture_width = int(width * .48)
-        with Image.open(assets / 'splash-landscape.png') as source:
+        with Image.open(assets / 'splash-mirrored-dusk.png') as source:
             self.artwork = ImageTk.PhotoImage(ImageOps.fit(source, (picture_width, height)), master=self)
         tk.Label(self, image=self.artwork, borderwidth=0).pack(side='right', fill='y')
         content = tk.Frame(self, background='#202127')

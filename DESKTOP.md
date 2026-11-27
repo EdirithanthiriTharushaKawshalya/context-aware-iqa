@@ -71,10 +71,79 @@ inference benchmarks or guaranteed speedups for every folder. Tests cover stale
 preview rejection, UI responsiveness during decoding, cache reuse, orientation,
 unchanged-row updates, and complete checkpoint round-trips.
 
+Version 0.10.0 adds RAW decoding to folder analysis, gallery thumbnails, photo
+previews, 100% inspection, duplicate comparison, and removal-review previews.
+Supported extensions include Sony ARW/SR2/SRF, Canon CR2/CR3/CRW, Nikon NEF/NRW,
+DNG, Fujifilm RAF, Olympus ORF, Panasonic RW2, Leica RWL, Pentax PEF, Samsung SRW,
+and Minolta MRW. Actual camera/compression support depends on the bundled LibRaw
+decoder; damaged or unsupported encodings produce a per-file Error with a reason.
+
+Assessment and 100% inspection decode sensor data at full resolution into sRGB
+with camera white balance and automatic brightening disabled. Small display
+previews use half-size decoding; gallery thumbnails use the embedded camera
+preview when available, with sensor decoding as a fallback. Embedded camera JPEGs
+are never substituted for full-resolution RAW assessment. Camera previews can
+look different from the neutral rendering. XMP/Lightroom edits are not applied.
+Orientation is applied once, and capture time, subseconds, timezone, camera ID,
+and shutter speed are retained when available. Rendering is versioned in project
+records; old Unsupported RAW entries return to Pending on rescan while manual
+choices and protection are preserved.
+
+RAW files are opened read-only and no converted files are written into the source
+folder. Export copies the selected original RAW bytes. RAW/JPEG companions are
+separate collection entries; this release does not implement automatic pairing or
+sidecar export/editing. Cleanup still requires confirmation of the exact original
+filenames, and never implicitly removes companions or XMP files.
+
+The installer bundles rawpy 0.28.0, LibRaw 0.22.2, ExifRead, and the native RAW
+runtime DLLs. Third-party license files are included in the bundled distribution
+metadata. Decoder documentation: [rawpy](https://letmaik.github.io/rawpy/api/rawpy.RawPy.html),
+[render parameters](https://letmaik.github.io/rawpy/api/rawpy.Params.html), and
+[ExifRead](https://github.com/ianare/exif-py).
+
+For a packaged native-decoder check, run:
+`ContextAwareIQA.exe --raw-smoke-test "photo.ARW" --raw-report "raw-check.json"`.
+This verifies thumbnail, fitted, and full-resolution decoding, records capture
+metadata and decoder versions, and checks that the source SHA-256 is unchanged.
+The same flags work with `python desktop_app.py` for source verification.
+Public Sony A7 III ARW, Nikon D3S NEF, and Canon 40D sRAW CR2 samples were used for
+local verification. Sony sample: [metadata-extractor-images](https://github.com/drewnoakes/metadata-extractor-images/tree/main/arw);
+Nikon/Canon samples: [rawpy tests](https://github.com/letmaik/rawpy/tree/main/test).
+These sample files are kept outside Git and are not included in the installer.
+
+Version 0.10.1 fixes mouse-wheel scrolling in the photo library. Wheel input is
+routed by pointer location even when another control has keyboard focus; partial
+Windows wheel deltas accumulate, and the details list and review-reason text also
+scroll under the pointer. Dialog galleries use the same routing.
+
+Double-click a photograph (or press Enter on a gallery card) to open it fitted
+to the viewer window. Fit to window and 100% controls switch between the complete
+composition and full-resolution inspection. The explicit Inspect at 100% action
+still opens at actual pixels. Fit mode refits on window resize; loading remains
+asynchronous and closing a viewer restores its parent dialog's modal state.
+
+Selected photo now has a prominent Why this photo needs review section, separate
+from measurements and RAW-processing notes. Actual review reasons are saved in
+project records; manual Review decisions and approvals are identified explicitly.
+Use `--review-example` with the desktop preview script to capture the reason card
+and both viewer modes using synthetic display decisions.
+
+Dark RAW subject detection and focus measurements use bounded illumination
+compensation (at most a 4x gain). The original rendering still supplies contrast,
+shadow/highlight clipping, and global exposure measurements. This reduces the
+brightness dependence of edge measurements without changing JPEG feature values
+or automatically approving dark images. Genuine blur and exposure problems can
+still require Review. RAW assessment profiles advance to v2, so reopening a saved
+project queues older RAW assessments for analysis while preserving human choices.
+These are engineering corrections to the existing heuristic assessment, rather
+than a new accuracy claim or a substitute for inspecting the photograph.
+
 `python scripts/preview_desktop_design.py` opens a temporary preview and saves
 splash, light/dark workspace, preferences, and tour screenshots under
 `outputs/desktop-design-review/`. It uses copies of the bundled artwork as sample
 photos and isolated preferences, then closes automatically.
+Pass `--raw-sample "photo.ARW"` to use a copy of a camera file for a RAW display
+check; those screenshots go under `outputs/raw-verification/desktop-preview/`.
 
 The bundled image at `src/images/splash-landscape.png` was generated with the
 built-in image generation tool. Its prompt was: “Create a premium fine-art
@@ -323,13 +392,12 @@ can degrade if models are unavailable; inspect the assessment reasons. Decisions
 are heuristic and inherit the research engine's documented limitations in
 `PHOTO_ASSESSMENT.md`; this is not a validated commercial culling model.
 
-This release decodes JPEG, PNG, TIFF, BMP and WebP through Pillow. RAW extensions
-are inventoried as unsupported; RAW decoding and RAW/JPEG pairing are future work.
+Raster formats use Pillow and RAW formats use LibRaw, as described above.
 Other file types are ignored. Analysis is sequential and full-resolution; large
 collections require runtime and memory validation. The table stores a row per
-photo, project persistence currently rewrites JSON per photo, and
-similarity matching is quadratic. SQLite, indexed similarity, thumbnail caching
-and background export are needed for production-scale collections. Export runs
+photo, project persistence rewrites JSON checkpoints, and similarity matching
+uses candidate indexes before detailed verification. Display caches are bounded;
+background export and alternative persistence remain future work. Export runs
 synchronously and may temporarily occupy the interface. A failed copy can leave
 a partial export folder. Cleanup runs in a background thread and can be stopped
 between individual Recycle Bin operations using Pause. It never invokes permanent

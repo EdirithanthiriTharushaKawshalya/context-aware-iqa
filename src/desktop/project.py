@@ -6,10 +6,7 @@ import shutil
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from PIL import Image, ImageOps
-
-SUPPORTED = {'.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.webp'}
-RAW = {'.cr2', '.cr3', '.nef', '.arw', '.dng', '.orf', '.raf', '.rw2'}
+from .image_io import SUPPORTED, RAW, RAW_RENDER_PROFILE, is_raw, read_photo
 
 
 def photo_entries(root, recursive):
@@ -62,6 +59,8 @@ class Photo:
     duplicate_count: int = 0
     duplicate_best: bool = False
     burst_detail_score: float | None = None
+    render_profile: str = ''
+    review_reasons: list | None = None
 
     @property
     def duplicate_label(self):
@@ -151,6 +150,7 @@ class Project:
             for photo in self.photos:
                 if not photo.recycled and photo.status in ('Keep', 'Review', 'Error', 'Pending'):
                     photo.status, photo.score, photo.reasons = 'Pending', 0., []
+                    photo.review_reasons = None
                     photo.decision_source, photo.model_identifier = '', ''
                     photo.technical_score = photo.context_score = photo.creative_probability = None
                     photo.creative_style = 'Unknown'
@@ -231,12 +231,21 @@ class Project:
             previous = old.get(relative)
             if previous and (previous.size, previous.modified) == (stat.st_size, stat.st_mtime_ns):
                 previous.recycled = False  # A photo restored from the Recycle Bin.
+                if is_raw(path) and (previous.status == 'Unsupported' or
+                        previous.status in ('Keep', 'Review', 'Error') and previous.render_profile != RAW_RENDER_PROFILE):
+                    previous.status, previous.score, previous.reasons = 'Pending', 0., []
+                    previous.review_reasons = None
+                    previous.duplicate_features = {}
+                    previous.signature = previous.group = ''
+                    previous.decision_source = previous.model_identifier = ''
+                    previous.technical_score = previous.context_score = previous.creative_probability = None
+                    previous.creative_style = 'Unknown'
+                    previous.photographic_profiles = []
+                    previous.possible_creative = False
+                    previous.burst_detail_score = None
                 photos.append(previous)
             else:
                 photo = Photo(relative, stat.st_size, stat.st_mtime_ns)
-                if path.suffix.lower() in RAW:
-                    photo.status = 'Unsupported'
-                    photo.reasons = ['RAW decoding is not supported in this release.']
                 photos.append(photo)
         found = {p.relative for p in photos}
         photos.extend(p for p in old.values() if p.recycled and p.relative not in found)
@@ -399,10 +408,10 @@ class Project:
                 before_photo(photo)
             try:
                 path = self.path_for(photo)
-                with Image.open(path) as original:
-                    from .duplicates import capture_metadata
-                    metadata = capture_metadata(original.getexif())
-                    image = ImageOps.exif_transpose(original).convert('RGB')
+                photo.render_profile = RAW_RENDER_PROFILE if is_raw(path) else ''
+                from .duplicates import capture_metadata
+                image = read_photo(path)
+                metadata = capture_metadata(image.getexif())
                 result = pipeline.run(image, config)
                 if not math.isfinite(result.unified_score):
                     raise ValueError('Assessment returned an invalid score.')
@@ -416,8 +425,15 @@ class Project:
                 photo.creative_probability = getattr(result, 'creative_probability', None)
                 photo.photographic_profiles = list(getattr(result, 'photographic_profiles', []))
                 photo.possible_creative = getattr(result, 'possible_creative', False)
-                photo.reasons = list(result.review_reasons)
+                photo.review_reasons = list(result.review_reasons)
+                if photo.status == 'Review' and not photo.review_reasons:
+                    photo.review_reasons = ['The combined assessment is below the Keep threshold; inspect focus, exposure, and contrast.']
+                photo.reasons = list(photo.review_reasons)
                 photo.reasons.extend(getattr(result, 'assessment_notes', []))
+                if is_raw(path):
+                    photo.reasons.append('RAW assessment uses a neutral rendering without automatic brightening. Lightroom/XMP edits are not applied.')
+                    if getattr(result, 'local_features', {}).get('raw_focus_gain', 1.) > 1:
+                        photo.reasons.append('RAW focus was checked with limited brightness compensation. Exposure and clipping still use the original rendering.')
                 if getattr(result, 'probability_keep', None) is not None:
                     photo.reasons.append(f'Learned Keep score: {result.unified_score:.1f}/100; threshold: {result.decision_threshold:.1f}.')
                 if photo.status == 'Review' and not photo.reasons:
@@ -430,6 +446,7 @@ class Project:
             except Exception as exc:
                 photo.status = 'Error'
                 photo.reasons = [str(exc)]
+                photo.review_reasons = [str(exc)]
             progress(photo)
         self.update_duplicate_groups()
 
@@ -450,9 +467,8 @@ class Project:
             if before_photo:
                 before_photo(photo)
             try:
-                with Image.open(self.path_for(photo)) as original:
-                    metadata = capture_metadata(original.getexif())
-                    image = ImageOps.exif_transpose(original).convert('RGB')
+                image = read_photo(self.path_for(photo))
+                metadata = capture_metadata(image.getexif())
                 self.describe_duplicates(photo,image,metadata)
             except (OSError,ValueError) as exc:
                 photo.reasons.append(f'Duplicate comparison unavailable: {exc}')

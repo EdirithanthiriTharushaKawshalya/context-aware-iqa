@@ -3,20 +3,11 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 import queue
 
-from PIL import Image, ImageOps
+from .image_io import read_photo
 
 
 def read_preview(path, size=None):
-    with Image.open(path) as original:
-        if size is not None:
-            # JPEG decoder reduction is for display only; assessment stays full-size.
-            orientation = original.getexif().get(274, 1)
-            draft_size = size[::-1] if orientation in (5, 6, 7, 8) else size
-            original.draft('RGB', draft_size)
-        image = ImageOps.exif_transpose(original).convert('RGB')
-        if size is not None:
-            image.thumbnail(size, Image.Resampling.LANCZOS)
-        return image
+    return read_photo(path, size)
 
 
 class PreviewLoader:

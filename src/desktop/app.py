@@ -114,6 +114,7 @@ class DesktopApp:
             self._table_records.clear()
             self.preview_loader.cancel()
             self._preview_requested = self._preview_displayed = None
+            self.review_explanation.set('')
             self.preview_label.configure(image='', text='Select a photo to inspect it.')
             self.details.set('Your work is saved to automatic recovery. Choose Finish project when ready.')
             self.refresh()
@@ -519,7 +520,7 @@ class DesktopApp:
 
     def open_gallery_photo(self, iid):
         self.select_gallery_photo(iid)
-        self.zoom()
+        self.view_photo()
 
     def toggle_chosen(self, iid):
         if not self.idle() or not self.project or not self.update():
@@ -551,6 +552,7 @@ class DesktopApp:
             self.preview_loader.cancel()
             self._preview_requested = self._preview_displayed = None
             self.preview_label.configure(image='', text='Select a photo to inspect it.')
+            self.review_explanation.set('')
             return
         if hasattr(self, 'gallery'):
             self.gallery.selected = self.table.selection()[0]
@@ -560,7 +562,13 @@ class DesktopApp:
             self._preview_requested = self._preview_displayed = None
             self.preview_label.configure(image='', text='Moved to the Recycle Bin. Restore it there, then reopen this project.')
             self.details.set(photo.relative)
+            self.review_explanation.set('')
             return
+        from .review import explanation
+        heading, reason = explanation(photo)
+        self.review_heading.set(heading)
+        if self.review_explanation.get() != reason:
+            self.review_explanation.set(reason)
         score = f'{photo.score:.1f}' if photo.status in ('Keep', 'Review') else 'Not assessed'
         style_source = 'Photographer' if photo.creative_override else 'Model' if photo.creative_probability is not None else 'Not assessed'
         if photo.possible_creative and not photo.creative_override and photo.creative_probability is None:
@@ -623,6 +631,7 @@ class DesktopApp:
                 photo.must_include = False
             self.checkpoint()
             self.refresh()
+            self.preview()
 
     def keep_creative(self):
         """An explicit photographer judgment, preserved across reassessment."""
@@ -636,6 +645,7 @@ class DesktopApp:
         photo.creative_override = 'Creative'
         self.checkpoint()
         self.refresh()
+        self.preview()
 
     def pin(self):
         if not self.idle():
@@ -646,52 +656,21 @@ class DesktopApp:
             self.checkpoint()
             self.refresh()
 
-    def zoom(self, photo=None, parent=None):
+    def view_photo(self, photo=None, parent=None, fit=True):
         if self.busy:
             return
         photo = photo or self.current()
         if not photo:
             return
         try:
-            path = self.project.path_for(photo)
-            window = tk.Toplevel(parent or self.root)
-            if parent:
-                window.transient(parent)
-                window.grab_set()
-                def close_zoom():
-                    window.destroy()
-                    if parent.winfo_exists():
-                        parent.grab_set()
-                window.protocol('WM_DELETE_WINDOW',close_zoom)
-            window.title(f'100% — {photo.relative}')
-            window.geometry('950x700')
-            canvas = tk.Canvas(window)
-            horizontal = ttk.Scrollbar(window, orient='horizontal', command=canvas.xview)
-            vertical = ttk.Scrollbar(window, orient='vertical', command=canvas.yview)
-            horizontal.pack(side='bottom', fill='x')
-            vertical.pack(side='right', fill='y')
-            canvas.pack(fill='both', expand=True)
-            canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
-            canvas.create_text(24, 24, anchor='nw', text='Loading full-resolution photo…',
-                               fill='#91879f', font=('Segoe UI', 10))
-            from .previews import PreviewLoader
-            loader = PreviewLoader(window, max_pixels=0)
-            window.preview_loader = loader
-            window.bind('<Destroy>', lambda event: loader.close() if event.widget == window else None, add='+')
-            def loaded(key, image, error):
-                if not canvas.winfo_exists():
-                    return
-                canvas.delete('all')
-                if error:
-                    canvas.create_text(24, 24, anchor='nw', text=f'Preview unavailable: {error}', fill='#91879f')
-                else:
-                    canvas.configure(scrollregion=(0, 0, image.width, image.height))
-                    canvas.photo = ImageTk.PhotoImage(image, master=window)
-                    canvas.create_image(0, 0, anchor='nw', image=canvas.photo)
-            loader.request((str(path), photo.size, photo.modified), path, None, loaded)
-            return window
+            from .viewer import PhotoViewer
+            self.viewer = PhotoViewer(self.root, self.project.path_for(photo), photo, parent, fit)
+            return self.viewer.window
         except Exception as exc:
             messagebox.showerror('Inspect photo', str(exc))
+
+    def zoom(self, photo=None, parent=None):
+        return self.view_photo(photo, parent, fit=False)
 
     def export(self):
         if not self.idle() or not self.project:
@@ -756,6 +735,9 @@ class DesktopApp:
             why = 'Manually marked' if photo.override == 'Excluded' else 'Needs review' if photo.decision == 'Review' else 'Outside target selection'
             listing.insert('', 'end', iid=str(i), text=photo.relative, values=(why,))
         count = tk.StringVar(value=f'0 of {len(candidates)} files selected for removal')
+        from .previews import PreviewLoader
+        cleanup_previews = PreviewLoader(window)
+        window.bind('<Destroy>', lambda event: cleanup_previews.close() if event.widget == window else None, add='+')
         def inspect(_=None):
             chosen = listing.selection()
             count.set(f'{len(chosen)} of {len(candidates)} files selected for removal')
@@ -764,11 +746,15 @@ class DesktopApp:
             photo = candidates[int(chosen[0])]
             reason.set(f'{photo.relative}\nScore: {photo.score:.1f}\n' + '\n'.join(photo.reasons))
             try:
-                with Image.open(self.project.path_for(photo)) as original:
-                    image = ImageOps.exif_transpose(original).convert('RGB')
-                    image.thumbnail((400, 420))
-                preview.photo = ImageTk.PhotoImage(image)
-                preview.configure(image=preview.photo, text='')
+                path = self.project.path_for(photo)
+                preview.configure(image='', text='Loading preview…')
+                def loaded(key, image, error):
+                    if error:
+                        preview.configure(image='', text=f'Preview unavailable: {error}')
+                    else:
+                        preview.photo = ImageTk.PhotoImage(image, master=window)
+                        preview.configure(image=preview.photo, text='')
+                cleanup_previews.request((str(path), photo.size, photo.modified), path, (400, 420), loaded)
             except Exception as exc:
                 preview.configure(image='', text=f'Preview unavailable: {exc}')
         listing.bind('<<TreeviewSelect>>', inspect)

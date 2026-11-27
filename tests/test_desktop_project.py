@@ -24,7 +24,7 @@ def collection(tmp_path):
 def test_inventory_resume_and_changed_file_reset(tmp_path):
     project = collection(tmp_path)
     assert len(project.photos) == 4
-    assert next(p for p in project.photos if p.relative.endswith('.nef')).status == 'Unsupported'
+    assert next(p for p in project.photos if p.relative.endswith('.nef')).status == 'Pending'
     photo = next(p for p in project.photos if p.relative == 'one.jpg')
     photo.status, photo.override = 'Keep', 'Review'
     saved = tmp_path / 'project.iqa.json'
@@ -72,7 +72,7 @@ def test_analysis_pause_errors_and_resumption(tmp_path):
     assert len(calls) == 1
     stop.clear()
     project.analyze(pipeline, None, stop, lambda p: calls.append(p.relative))
-    assert len(calls) == 3
+    assert len(calls) == 4
     assert next(p for p in project.photos if p.relative == 'two.jpg').status == 'Error'
     assert all(p.status != 'Pending' for p in project.photos)
 
@@ -121,7 +121,7 @@ def test_creative_photos_are_not_automatic_removal_suggestions():
 
 def test_analysis_persists_machine_style_and_preserves_photographer_creative_override(tmp_path):
     project = collection(tmp_path)
-    photo = next(p for p in project.photos if p.status == 'Pending')
+    photo = next(p for p in project.photos if p.relative.endswith('.jpg'))
     photo.override, photo.creative_override = 'Keep', 'Creative'
     pipeline = SimpleNamespace(run=lambda image, config: SimpleNamespace(
         unified_score=35, classification='Review', review_reasons=['Possible blur'],

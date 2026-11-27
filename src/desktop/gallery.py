@@ -6,16 +6,13 @@ import queue
 import tkinter as tk
 from tkinter import ttk
 
-from PIL import Image, ImageOps, ImageTk
+from PIL import ImageTk
 from .appearance import color as theme_color
+from .image_io import read_photo
 
 
 def read_thumbnail(path):
-    with Image.open(path) as original:
-        original.draft('RGB', (420, 320))
-        image = ImageOps.exif_transpose(original).convert('RGB')
-        image.thumbnail((190, 128), Image.Resampling.LANCZOS)
-        return image
+    return read_photo(path, (190, 128), thumbnail=True)
 
 
 class PhotoGallery(ttk.Frame):
@@ -24,15 +21,14 @@ class PhotoGallery(ttk.Frame):
     def __init__(self, parent, on_select=None, on_toggle=None, on_open=None):
         super().__init__(parent, style='Card.TFrame')
         self.on_select, self.on_toggle, self.on_open = on_select, on_toggle, on_open
-        self.canvas = tk.Canvas(self, background='#f7f6fa', highlightthickness=0, takefocus=True)
+        self.canvas = tk.Canvas(self, background='#f7f6fa', highlightthickness=0, takefocus=True, yscrollincrement=24)
         scroll = ttk.Scrollbar(self, orient='vertical', command=self.scroll)
         scroll.pack(side='right', fill='y')
         self.canvas.pack(fill='both', expand=True)
         self.canvas.configure(yscrollcommand=scroll.set)
         self.canvas.bind('<Configure>', lambda _: self.render())
-        self.canvas.bind('<MouseWheel>', self.wheel)
-        self.canvas.bind('<Button-4>', lambda _: self.scroll(-3, 'units'))
-        self.canvas.bind('<Button-5>', lambda _: self.scroll(3, 'units'))
+        self.canvas.bind('<Button-4>', lambda _: self.scroll('scroll', -3, 'units'))
+        self.canvas.bind('<Button-5>', lambda _: self.scroll('scroll', 3, 'units'))
         self.canvas.bind('<Button-1>', self.click)
         self.canvas.bind('<Double-Button-1>', self.open_current)
         for key, offset in (('Left', -1), ('Right', 1), ('Up', 'up'), ('Down', 'down')):
@@ -58,6 +54,9 @@ class PhotoGallery(ttk.Frame):
         self.signature = None
         self.photo_images = []
         self.visible_indices = []
+        self.wheel_remainder = 0
+        from .scrolling import register_gallery
+        register_gallery(self)
 
     def set_photos(self, project, indices, chosen=(), editable=False, selected=None):
         rows = [(str(i), project.photos[int(i)]) for i in indices] if project else []
@@ -85,7 +84,11 @@ class PhotoGallery(ttk.Frame):
         self.render()
 
     def wheel(self, event):
-        self.scroll(-int(event.delta/120) if abs(event.delta) >= 120 else (-1 if event.delta > 0 else 1), 'units')
+        self.wheel_remainder += event.delta
+        steps = int(self.wheel_remainder/120)
+        if steps:
+            self.wheel_remainder -= steps*120
+            self.scroll('scroll', -steps*3, 'units')
         return 'break'
 
     def request(self, photo):
@@ -276,6 +279,7 @@ class PhotoGallery(ttk.Frame):
     def close(self, event):
         if event.widget == self and self.alive:
             self.alive = False
+            self._root()._wheel_galleries.discard(self)
             self.timer_host.after_cancel(self.timer)
             # Break callbacks that capture the owning app/dialog and Tk variables.
             # Otherwise a later background-worker GC can finalize them off-thread.

@@ -21,7 +21,9 @@ def assess_project(connection, data):
             connection.send(('stage', 'Loading assessment engine…'))
             from src.pipeline import Phase4Pipeline, PipelineConfig
             connection.send(('stage', 'Initializing models. First use may download weights; Pause can cancel startup.'))
-            pipeline = Phase4Pipeline()
+            from .raw_quality import RawFocusExtractor, RawAwareLocalizer
+            pipeline = Phase4Pipeline(local_extractor=RawFocusExtractor())
+            pipeline.localizer = RawAwareLocalizer(pipeline.localizer)
             config = PipelineConfig(shot_type=project.shot_type, motion_intent=project.motion_intent)
             project.analyze(
                 pipeline, config, threading.Event(),

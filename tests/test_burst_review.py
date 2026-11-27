@@ -84,13 +84,13 @@ def test_turning_off_single_burst_selection_restores_eligible_alternates(app):
     assert stored.one_per_burst is False
 
 
-def test_comparison_opens_the_actual_alternate_at_full_resolution(app, monkeypatch):
+def test_comparison_opens_the_actual_alternate_in_the_viewer(app, monkeypatch):
     a,b = add_duplicates(app)
     app.select_gallery_photo('0')
     window = app.compare_burst()
     gallery = next(child for child in window.winfo_children() if child.__class__.__name__ == 'PhotoGallery')
     opened = []
-    monkeypatch.setattr(app,'zoom',lambda photo=None,parent=None: opened.append((photo,parent)))
+    monkeypatch.setattr(app,'view_photo',lambda photo=None,parent=None: opened.append((photo,parent)))
     gallery.on_open('1')
     assert opened == [(b,window)]
     window.destroy()

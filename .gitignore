@@ -55,6 +55,7 @@ outputs/desktop-workflow-tests*/
 outputs/desktop-ui-preview*
 outputs/desktop-design-review/
 outputs/desktop-performance*.json
+outputs/raw-verification/
 outputs/context-classifier-tests*/
 outputs/pretrained/
 outputs/research_runs/

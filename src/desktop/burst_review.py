@@ -24,7 +24,7 @@ def show_burst(app):
     ttk.Label(window,text=f'{len(members)} '+('exact copies' if photo.duplicate_kind == 'exact' else 'similar burst candidates'),
               font=('Segoe UI',17,'bold'),padding=(18,12)).pack(anchor='w')
     explanation = ttk.Label(window,text='Best uses Keep status, overall quality and weakest assessable subject detail. '
-              'Expressions, smiles and closed eyes are not rated. Double-click a card for 100% inspection.',
+              'Expressions, smiles and closed eyes are not rated. Double-click a card to open the photo; choose 100% to inspect detail.',
               wraplength=1000,padding=(18,0))
     explanation.pack(fill='x')
     selected = tk.StringVar(value='')
@@ -69,7 +69,7 @@ def show_burst(app):
             messagebox.showinfo('Chosen photos',str(exc),parent=window)
 
     gallery = PhotoGallery(window,on_select=inspect,on_toggle=toggle,
-                           on_open=lambda iid: app.zoom(photo=by_id[iid],parent=window))
+                           on_open=lambda iid: app.view_photo(photo=by_id[iid],parent=window))
     gallery.pack(fill='both',expand=True,padx=18,pady=(0,10))
 
     def use_selected():
