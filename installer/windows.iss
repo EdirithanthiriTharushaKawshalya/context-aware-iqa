@@ -3,7 +3,7 @@
 ; Preserve the original uninstall identity when updating an existing install.
 AppId=Context-Aware IQA
 AppName=Context Aware IQA
-AppVersion=0.8.0
+AppVersion=0.9.2
 DefaultDirName={localappdata}\Programs\ContextAwareIQA
 DefaultGroupName=Context Aware IQA
 PrivilegesRequired=lowest

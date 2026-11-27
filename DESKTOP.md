@@ -5,6 +5,88 @@ The Streamlit website retains its existing layout and research workflow, with
 the shared Context Aware IQA name and logo. Both
 interfaces reuse `src.pipeline.Phase4Pipeline`.
 
+The desktop appearance refresh adds a split startup card with original landscape
+artwork, a short product description, and live status messages at the bottom.
+The startup card has no progress bar. The analysis progress indicator remains in
+the workspace. The extra Photo Review / Desktop label and numbered workflow strip
+have been removed.
+
+First launch opens a four-step tour anchored to the photo folder, analysis
+toolbar, photo library, and finish action. The workspace is dimmed around a
+highlighted target. Use Next, Back, Skip tour, or Escape; finishing or skipping is
+remembered. Replay it with **Help > Workspace tour**.
+
+Use **Edit > Preferences** (Ctrl+,) to switch between Light and Dark. Changes
+apply immediately to the workspace and photo gallery and are remembered per user;
+they do not change the active project or its photo decisions. If preferences
+cannot be saved, the dialog reports that the theme is applied for this session.
+The themed menu bar groups existing commands under **File, Edit, Photo, View,
+Review, Help**. Use File to open/recover/save/copy projects, Photo for decisions
+and inspection, and Review for analysis, burst comparison, and finishing.
+Ctrl+O opens a folder, Ctrl+Shift+O opens a saved project, and Ctrl+S saves it.
+
+Version 0.9.1 extends the theme to the window caption and application menus.
+The caption keeps Windows' own minimize, maximize, close, and resize behavior;
+its colors use the documented [DWM window attributes](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute)
+where the Windows version supports them. Newly opened application dialogs also
+receive the current theme. The menu strip and command popups follow both themes,
+including hover, disabled commands, mouse switching, and keyboard navigation.
+Use Alt plus the menu initial, or F10, then arrows, Enter, and Escape.
+
+Compact buttons and fields now use transparent corner images matched to their
+containing surface. Panel corners have a smaller radius. Scrollbars are slim,
+arrowless controls with draggable thumbs and page scrolling, and library tabs
+use an accent underline rather than raised borders. The preview script includes
+the complete window caption and a screenshot of an open dark command menu.
+
+Version 0.9.2 reduces work during photo review. The gallery retains unchanged
+canvas cards and bounded Tk thumbnail images, and cancels queued thumbnails
+outside the viewport. The details list updates only changed rows. Normal photo
+previews and 100% inspection decode in background workers; rapid navigation
+discards obsolete requests, and a bounded preview cache makes revisits immediate.
+JPEG decoder reduction is used only for display previews. Full-resolution
+inspection and ML assessment retain their original image resolution.
+
+Folder scanning filters entries before stat calls and reuses Windows directory
+metadata. Selection uses filename sets for explicit choices, duplicate comparison
+reuses bounded, immutable decoded fingerprint arrays, and recovery saves avoid
+recursively copying every fingerprint before JSON encoding. Recovery still writes
+an atomic checkpoint; cleanup retains its per-file durable audit and validation.
+Project fields and assessment decisions are unchanged.
+
+Run `python scripts/benchmark_desktop.py --output outputs/desktop-performance.json`
+to measure a disposable synthetic collection. Local median timings for 2,000
+photos with 1,000 explicit choices, before/after this change, were:
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Selection | 304.206 ms | 0.747 ms |
+| Recovery checkpoint | 75.908 ms | 32.112 ms |
+| Unchanged collection refresh | 268.028 ms | 8.144 ms |
+| Unchanged gallery render | 8.008 ms | 0.050 ms |
+| Gallery scroll round-trip | 19.574 ms | 3.153 ms |
+
+These are synthetic interface timings on the development machine, not ML
+inference benchmarks or guaranteed speedups for every folder. Tests cover stale
+preview rejection, UI responsiveness during decoding, cache reuse, orientation,
+unchanged-row updates, and complete checkpoint round-trips.
+
+`python scripts/preview_desktop_design.py` opens a temporary preview and saves
+splash, light/dark workspace, preferences, and tour screenshots under
+`outputs/desktop-design-review/`. It uses copies of the bundled artwork as sample
+photos and isolated preferences, then closes automatically.
+
+The bundled image at `src/images/splash-landscape.png` was generated with the
+built-in image generation tool. Its prompt was: “Create a premium fine-art
+landscape photograph for the image half of a desktop photography application's
+startup splash card. Portrait aspect ratio, misty layered mountains in Sri Lanka
+at dawn, deep forest teal foreground with delicate grasses, soft lavender
+mountains and warm peach sky, small glowing sun, cinematic natural light,
+sophisticated restrained color grading, actual photographic texture and detail,
+quiet contemplative mood. No text, no logos, no UI, no borders. This is an
+original full bleed image asset, not a splash screen mockup.” The asset is
+included in the PyInstaller bundle.
+
 Version 0.8.0 adds exact-copy and similar-burst recommendations. File SHA-256
 and orientation-normalized RGB pixel hashes identify exact file/visual copies,
 including copies with different names or image metadata. Similar burst candidates

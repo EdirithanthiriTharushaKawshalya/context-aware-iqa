@@ -3,13 +3,34 @@ import json
 import math
 import os
 import shutil
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 from PIL import Image, ImageOps
 
 SUPPORTED = {'.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.webp'}
 RAW = {'.cr2', '.cr3', '.nef', '.arw', '.dng', '.orf', '.raf', '.rw2'}
+
+
+def photo_entries(root, recursive):
+    """Filter before statting; retain scandir's cached Windows file metadata."""
+    pending, found = [root], []
+    while pending:
+        folder = pending.pop()
+        try:
+            with os.scandir(folder) as entries:
+                for entry in entries:
+                    if entry.is_dir(follow_symlinks=False):
+                        if recursive and not os.path.isjunction(entry.path):
+                            pending.append(Path(entry.path))
+                    elif '.'+entry.name.rpartition('.')[2].lower() in SUPPORTED | RAW and entry.is_file():
+                        path = Path(entry.path)
+                        if path.resolve().is_relative_to(root):
+                            found.append((path, entry.stat()))
+        except OSError:
+            if folder == root:
+                raise
+    return sorted(found, key=lambda item: item[0])
 
 
 @dataclass
@@ -178,7 +199,12 @@ class Project:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + '.tmp')
-        temporary.write_text(json.dumps(asdict(self), indent=2), encoding='utf-8')
+        # JSON already traverses lists/dicts. Avoid asdict's redundant recursive
+        # deepcopy of every fingerprint and cleanup record on each checkpoint.
+        record = {item.name: getattr(self, item.name) for item in fields(self) if item.name != 'photos'}
+        names = tuple(item.name for item in fields(Photo))
+        record['photos'] = [{name: getattr(photo, name) for name in names} for photo in self.photos]
+        temporary.write_text(json.dumps(record, separators=(',', ':')), encoding='utf-8')
         temporary.replace(path)
 
     @classmethod
@@ -200,12 +226,7 @@ class Project:
             raise ValueError('Select a folder.')
         old = {p.relative: p for p in self.photos}
         photos = []
-        for path in sorted(root.rglob('*') if self.recursive else root.iterdir()):
-            if not path.is_file() or path.suffix.lower() not in SUPPORTED | RAW:
-                continue
-            if not path.resolve().is_relative_to(root):
-                continue
-            stat = path.stat()
+        for path, stat in photo_entries(root, self.recursive):
             relative = path.relative_to(root).as_posix()
             previous = old.get(relative)
             if previous and (previous.size, previous.modified) == (stat.st_size, stat.st_mtime_ns):
@@ -232,7 +253,8 @@ class Project:
         pinned = sorted([p for p in eligible if p.must_include or p.selection_choice == 'include'], key=lambda p: p.relative)
         if self.target is not None and len(pinned) > self.target:
             raise ValueError('Must-include or explicitly chosen count exceeds the target. Increase the target or remove a chosen photo.')
-        candidates = sorted([p for p in eligible if p not in pinned], key=lambda p: (-p.score, p.relative))
+        pinned_names = {p.relative for p in pinned}
+        candidates = sorted([p for p in eligible if p.relative not in pinned_names], key=lambda p: (-p.score, p.relative))
         if self.one_per_burst:
             occupied = {p.duplicate_group for p in pinned if p.duplicate_group}
             best = {}
@@ -281,7 +303,8 @@ class Project:
         names = {p.relative for p in chosen}
         outside = [p for p in self.photos if not p.recycled and p.relative not in names]
         removable = [p for p in outside if not p.must_include and p.status in ('Keep', 'Review')]
-        retained = [p for p in outside if p not in removable]
+        removable_names = {p.relative for p in removable}
+        retained = [p for p in outside if p.relative not in removable_names]
         return {'chosen': chosen, 'remove': removable, 'retained': retained}
 
     def cleanup_candidates(self):

@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from PIL import Image, ImageOps, ImageTk
+from .appearance import color as theme_color
 
 
 def read_thumbnail(path):
@@ -44,6 +45,11 @@ class PhotoGallery(ttk.Frame):
         self.editable = False
         self.cache = OrderedDict()
         self.pending = set()
+        self.futures = {}
+        self.tk_cache = OrderedDict()
+        self.drawn = {}
+        self.empty_layout = None
+        self.scroll_region = None
         self.results = queue.Queue()
         self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix='photo-thumbnail')
         self.alive = True
@@ -94,8 +100,11 @@ class PhotoGallery(ttk.Frame):
             return
         self.pending.add(key)
         future = self.executor.submit(read_thumbnail, path)
+        self.futures[key] = future
         results = self.results
         def finished(task):
+            if task.cancelled():
+                return
             try:
                 result = task.result()
             except Exception:
@@ -107,62 +116,102 @@ class PhotoGallery(ttk.Frame):
         if not self.alive:
             return
         canvas = self.canvas
-        canvas.delete('all')
         self.photo_images = []
         columns = self.columns()
         height = ((len(self.rows)+columns-1)//columns)*(self.CARD_HEIGHT+self.GAP)+self.GAP
-        canvas.configure(scrollregion=(0, 0, max(1, canvas.winfo_width()-2), max(height, canvas.winfo_height())))
+        region = (0, 0, max(1, canvas.winfo_width()-2), max(height, canvas.winfo_height()))
+        if region != self.scroll_region:
+            canvas.configure(scrollregion=region)
+            self.scroll_region = region
         if not self.rows:
             self.visible_indices = []
+            layout = (canvas.winfo_width(), theme_color(self, '#827b90'))
+            if self.empty_layout == layout:
+                return
+            canvas.delete('all')
+            self.drawn.clear()
+            self.empty_layout = layout
             canvas.create_text(max(110, canvas.winfo_width()/2), 70, text='No photos in this view.\nChoose another filter or open a photo folder.',
-                               fill='#827b90', font=('Segoe UI', 11), justify='center', width=300)
+                               fill=theme_color(self, '#827b90'), font=('Segoe UI', 11), justify='center', width=300, tags=('empty',))
             return
+        canvas.delete('empty')
+        self.empty_layout = None
         top = max(0, int(canvas.canvasy(0))//(self.CARD_HEIGHT+self.GAP)-1)
         bottom = int(canvas.canvasy(canvas.winfo_height()))//(self.CARD_HEIGHT+self.GAP)+2
         self.visible_indices = list(range(top*columns, min(len(self.rows), bottom*columns)))
+        visible_ids = {self.rows[i][0] for i in self.visible_indices}
+        visible_keys = {self.key(self.rows[i][1]) for i in self.visible_indices}
+        for iid in set(self.drawn)-visible_ids:
+            canvas.delete('photo:'+iid)
+            del self.drawn[iid]
+        # Queue work for the current viewport rather than decoding old scroll positions.
+        for key, future in list(self.futures.items()):
+            if key not in visible_keys and future.cancel():
+                self.pending.discard(key)
+                del self.futures[key]
         for position in self.visible_indices:
             iid, photo = self.rows[position]
             x, y = self.GAP+(position % columns)*(self.CARD_WIDTH+self.GAP), self.GAP+(position//columns)*(self.CARD_HEIGHT+self.GAP)
             tags = ('photo:'+iid,)
             chosen = photo.relative in self.chosen
+            key = self.key(photo)
+            signature = (x, y, key, photo.decision, photo.status, photo.override,
+                         photo.must_include, photo.style_label, photo.duplicate_label,
+                         photo.duplicate_best, chosen, self.editable, iid == self.selected,
+                         key in self.cache, theme_color(self, 'white'))
+            if self.drawn.get(iid) == signature and (self.cache.get(key) is None or key in self.tk_cache):
+                if key not in self.cache:
+                    self.request(photo)
+                if key in self.tk_cache:
+                    self.photo_images.append(self.tk_cache[key])
+                continue
+            canvas.delete(tags[0])
+            self.drawn[iid] = signature
             canvas.create_rectangle(x, y, x+self.CARD_WIDTH, y+self.CARD_HEIGHT,
-                                    fill='white', outline='#7659d6' if iid == self.selected else '#ddd8e8',
+                                    fill=theme_color(self, 'white'), outline=theme_color(self, '#7659d6') if iid == self.selected else theme_color(self, '#ddd8e8'),
                                     width=2 if iid == self.selected else 1, tags=tags)
             key = self.key(photo)
             if key in self.cache:
                 image = self.cache[key]
                 self.cache.move_to_end(key)
                 if image is not None:
-                    tk_image = ImageTk.PhotoImage(image, master=canvas)
+                    tk_image = self.tk_cache.get(key)
+                    if tk_image is None:
+                        tk_image = ImageTk.PhotoImage(image, master=canvas)
+                        self.tk_cache[key] = tk_image
+                    self.tk_cache.move_to_end(key)
                     self.photo_images.append(tk_image)
                     canvas.create_image(x+self.CARD_WIDTH/2, y+72, image=tk_image, tags=tags)
                 else:
-                    canvas.create_text(x+105, y+65, text='Preview unavailable', fill='#91879f', tags=tags)
+                    canvas.create_text(x+105, y+65, text='Preview unavailable', fill=theme_color(self, '#91879f'), tags=tags)
             else:
-                canvas.create_text(x+105, y+65, text='Recycled' if photo.recycled else 'Loading preview…', fill='#91879f', tags=tags)
+                canvas.create_text(x+105, y+65, text='Recycled' if photo.recycled else 'Loading preview…', fill=theme_color(self, '#91879f'), tags=tags)
                 self.request(photo)
             name = Path(photo.relative).name
             canvas.create_text(x+10, y+146, text=name if len(name) <= 29 else name[:26]+'…',
-                               anchor='w', fill='#302442', font=('Segoe UI', 9, 'bold'), tags=tags)
+                               anchor='w', fill=theme_color(self, '#302442'), font=('Segoe UI', 9, 'bold'), tags=tags)
             label = 'Marked for removal' if photo.decision == 'Excluded' else photo.decision
             if photo.override and photo.decision != photo.status and not photo.recycled:
                 label += ' · AI '+photo.status
-            color = '#24765b' if photo.decision == 'Keep' else '#926528' if photo.decision == 'Review' else '#837b91'
+            color = theme_color(self, '#24765b') if photo.decision == 'Keep' else theme_color(self, '#926528') if photo.decision == 'Review' else theme_color(self, '#837b91')
             canvas.create_text(x+10, y+166, text=label, anchor='w', fill=color, font=('Segoe UI', 9), tags=tags)
             if photo.duplicate_label:
                 badge = photo.duplicate_label + (' · protected' if photo.must_include else '')
-                canvas.create_text(x+10,y+186,text=badge,anchor='w',fill='#24765b' if photo.duplicate_best else '#837b91',
+                canvas.create_text(x+10,y+186,text=badge,anchor='w',fill=theme_color(self, '#24765b') if photo.duplicate_best else theme_color(self, '#837b91'),
                                    font=('Segoe UI',9),tags=tags)
             elif photo.must_include:
-                canvas.create_text(x+10, y+186, text='Protected', anchor='w', fill='#7659d6', font=('Segoe UI', 9), tags=tags)
+                canvas.create_text(x+10, y+186, text='Protected', anchor='w', fill=theme_color(self, '#7659d6'), font=('Segoe UI', 9), tags=tags)
             elif photo.style_label != 'Unknown':
-                canvas.create_text(x+10, y+186, text=photo.style_label, anchor='w', fill='#837b91', font=('Segoe UI', 9), tags=tags)
+                canvas.create_text(x+10, y+186, text=photo.style_label, anchor='w', fill=theme_color(self, '#837b91'), font=('Segoe UI', 9), tags=tags)
             toggle_tags = tags+('toggle:'+iid,)
-            canvas.create_rectangle(x+7, y+199, x+203, y+219, fill='#e9f4ef' if chosen else '#f3effa',
+            canvas.create_rectangle(x+7, y+199, x+203, y+219, fill=theme_color(self, '#e9f4ef') if chosen else theme_color(self, '#f3effa'),
                                     outline='', tags=toggle_tags)
             text = '✓ Chosen' if chosen else '+ Add to chosen' if self.editable and self.on_toggle else 'Not chosen'
-            canvas.create_text(x+105, y+209, text=text, fill='#24765b' if chosen else '#7659d6',
+            canvas.create_text(x+105, y+209, text=text, fill=theme_color(self, '#24765b') if chosen else theme_color(self, '#7659d6'),
                                font=('Segoe UI', 9, 'bold'), tags=toggle_tags)
+
+        while len(self.tk_cache) > 120:
+            self.tk_cache.popitem(last=False)
 
     def poll(self):
         changed = False
@@ -170,6 +219,9 @@ class PhotoGallery(ttk.Frame):
             while True:
                 key, image = self.results.get_nowait()
                 self.pending.discard(key)
+                self.futures.pop(key, None)
+                if key[0] != self.source:
+                    continue
                 self.cache[key] = image
                 while len(self.cache) > 120:
                     self.cache.popitem(last=False)
@@ -231,4 +283,9 @@ class PhotoGallery(ttk.Frame):
             self.rows = []
             self.photo_images.clear()
             self.cache.clear()
+            self.tk_cache.clear()
+            self.drawn.clear()
+            for future in self.futures.values():
+                future.cancel()
+            self.futures.clear()
             self.executor.shutdown(wait=False, cancel_futures=True)

@@ -7,7 +7,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     # Retain the implementation evidence used to validate trained models.
-    datas=[('src/images/icon.png', 'src/images')] + [('src/' + name, 'src') for name in IMPLEMENTATION_FILES],
+    datas=[('src/images/icon.png', 'src/images'), ('src/images/splash-landscape.png', 'src/images')] + [('src/' + name, 'src') for name in IMPLEMENTATION_FILES],
     hiddenimports=collect_submodules('torchvision'),
     hookspath=[],
     runtime_hooks=[],

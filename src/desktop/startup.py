@@ -34,34 +34,44 @@ class Splash(tk.Toplevel):
     def __init__(self, root):
         super().__init__(root)
         self.overrideredirect(True)
-        self.configure(background='#ffffff')
-        width, height = 560, 360
+        self.configure(background='#202127')
+        width, height = min(900, root.winfo_screenwidth()-60), min(520, root.winfo_screenheight()-60)
         self.geometry(f'{width}x{height}+{max(0, (root.winfo_screenwidth()-width)//2)}+{max(0, (root.winfo_screenheight()-height)//2)}')
         from .soft_theme import install
         style = ttk.Style(root)
         style.theme_use('clam')
         install(root, style)
-        image = tk.PhotoImage(file=str(Path(__file__).resolve().parents[1] / 'images/icon.png'))
-        self.logo = image.subsample(8)
-        tk.Label(self, image=self.logo, background='white').pack(pady=(30, 10))
-        tk.Label(self, text='Context Aware IQA', font=('Segoe UI', 24, 'bold'),
-                 background='white', foreground='#302442').pack()
-        tk.Label(self, text='Intelligent photo assessment. Thoughtful selection.',
-                 font=('Segoe UI', 10), background='white', foreground='#84758f').pack(pady=(8, 0))
-        loading = tk.Frame(self, background='white')
-        loading.pack(side='bottom', fill='x', padx=44, pady=32)
+        from PIL import Image, ImageOps, ImageTk
+        assets = Path(__file__).resolve().parents[1] / 'images'
+        picture_width = int(width * .48)
+        with Image.open(assets / 'splash-landscape.png') as source:
+            self.artwork = ImageTk.PhotoImage(ImageOps.fit(source, (picture_width, height)), master=self)
+        tk.Label(self, image=self.artwork, borderwidth=0).pack(side='right', fill='y')
+        content = tk.Frame(self, background='#202127')
+        content.pack(side='left', fill='both', expand=True, padx=34, pady=34)
+        with Image.open(assets / 'icon.png') as source:
+            source.thumbnail((74, 56), Image.Resampling.LANCZOS)
+            self.logo = ImageTk.PhotoImage(source, master=self)
+        tk.Label(content, image=self.logo, background='#202127').pack(anchor='w', pady=(0, 22))
+        tk.Label(content, text='Context Aware\nIQA', justify='left', font=('Segoe UI', 28, 'bold'),
+                 background='#202127', foreground='#f5f2fb').pack(anchor='w')
+        tk.Label(content, text='Every frame. A considered choice.',
+                 font=('Segoe UI', 11), background='#202127', foreground='#cbb8f3').pack(anchor='w', pady=(14, 16))
+        tk.Label(content, text='Discover the photographs worth keeping.\nAssess detail, compare moments, and\nbuild a selection that feels like you.', justify='left',
+                 font=('Segoe UI', 10), background='#202127', foreground='#b4adbf').pack(anchor='w')
+        loading = tk.Frame(content, background='#202127')
+        loading.pack(side='bottom', fill='x')
         self.status = tk.StringVar(value='Loading application components…')
         tk.Label(loading, textvariable=self.status, anchor='w', font=('Segoe UI', 10),
-                 background='white', foreground='#8b75ab').pack(fill='x', pady=(0, 12))
-        self.progress = ttk.Progressbar(loading, maximum=100)
-        self.progress.pack(fill='x')
+                 background='#202127', foreground='#ddd5e9', wraplength=330).pack(fill='x', pady=(0, 12))
+        tk.Label(loading, text='CONTEXT AWARE IMAGE QUALITY ASSESSMENT',
+                 font=('Segoe UI', 7), background='#202127', foreground='#827b90').pack(anchor='w')
         self.update()
         round_window(self)
         self.visible_since = time.monotonic()
 
-    def stage(self, text, progress):
+    def stage(self, text, progress=None):
         self.status.set(text)
-        self.progress.configure(value=progress)
         self.update_idletasks()
 
 

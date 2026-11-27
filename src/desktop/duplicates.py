@@ -8,6 +8,7 @@ import base64
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 import hashlib
+from functools import lru_cache
 from pathlib import PurePosixPath
 import re
 
@@ -50,8 +51,11 @@ def _pack(array):
     return base64.b64encode(np.asarray(array, dtype=np.uint8).tobytes()).decode('ascii')
 
 
+@lru_cache(maxsize=1024)
 def _unpack(text, shape):
-    return np.frombuffer(base64.b64decode(text, validate=True), dtype=np.uint8).reshape(shape).astype(np.float32)
+    array = np.frombuffer(base64.b64decode(text, validate=True), dtype=np.uint8).reshape(shape).astype(np.float32)
+    array.flags.writeable = False
+    return array
 
 
 def describe(image, localization=None, metadata=None, file_sha256=''):

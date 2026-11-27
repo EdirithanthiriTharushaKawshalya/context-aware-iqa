@@ -48,7 +48,7 @@ def build(app):
     style.configure('Card.TFrame', background='#ffffff')
     style.configure('Card.TLabel', background='#ffffff')
     style.configure('Muted.TLabel', foreground='#706d80', background='#ffffff', font=('Segoe UI', 9))
-    style.configure('Title.TLabel', background='#ffffff', font=('Segoe UI', 20, 'bold'))
+    style.configure('Title.TLabel', background='#ffffff', font=('Segoe UI', 16, 'bold'))
     style.configure('Section.TLabel', background='#ffffff', font=('Segoe UI', 11, 'bold'))
     style.configure('TButton', padding=(14, 9), background='#ffffff', bordercolor='#dedbe8', focuscolor='#7659d6')
     style.map('TButton', background=[('active', '#eee9fc'), ('pressed', '#e2d8fa')], foreground=[('disabled', '#aaa6b5')])
@@ -73,22 +73,17 @@ def build(app):
     install(root, style)
     with Image.open(ASSETS / 'icon.png') as image:
         app.window_icon = ImageTk.PhotoImage(image, master=root)
-        app.brand_icon = ImageTk.PhotoImage(image.resize((48, 36), Image.Resampling.LANCZOS), master=root)
+        app.brand_icon = ImageTk.PhotoImage(image.resize((32, 24), Image.Resampling.LANCZOS), master=root)
     root.iconphoto(True, app.window_icon)
 
-    header = ttk.Frame(root, style='Card.TFrame', padding=(24, 16))
+    header = ttk.Frame(root, style='Card.TFrame', padding=(20, 9))
     header.pack(fill='x')
     ttk.Label(header, image=app.brand_icon, style='Card.TLabel').pack(side='left', padx=(0, 12))
     brand = ttk.Frame(header, style='Card.TFrame')
     brand.pack(side='left')
     ttk.Label(brand, text='Context Aware IQA', style='Title.TLabel').pack(anchor='w')
-    ttk.Label(brand, text='A considered selection. Every moment accounted for.', style='Muted.TLabel').pack(anchor='w')
-    ttk.Label(header, text='PHOTO REVIEW  /  DESKTOP', style='Muted.TLabel').pack(side='right')
-    workflow = ttk.Label(root, textvariable=app.workflow, foreground='#74668f', padding=(24, 12), font=('Segoe UI', 9))
-    workflow.pack(fill='x')
-
-    setup = ttk.Frame(root, style='Rounded.TFrame', padding=(18, 14))
-    setup.pack(fill='x', padx=20)
+    setup = ttk.Frame(root, style='Rounded.TFrame', padding=(16, 10))
+    setup.pack(fill='x', padx=20, pady=(14, 0))
     setup.columnconfigure(1, weight=1)
     ttk.Label(setup, text='Photo folder', style='Section.TLabel').grid(row=0, column=0, sticky='w', padx=(0, 16))
     ttk.Entry(setup, textvariable=app.source, state='readonly').grid(row=0, column=1, columnspan=4, sticky='ew')
@@ -149,14 +144,14 @@ def build(app):
     metrics.pack(fill='x', padx=20, pady=(0, 10))
     for col, (name, variable) in enumerate(app.metrics.items()):
         metrics.columnconfigure(col, weight=1)
-        card = ttk.Frame(metrics, style='Rounded.TFrame', padding=(18, 10))
+        card = ttk.Frame(metrics, style='Rounded.TFrame', padding=(16, 8))
         card.grid(row=0, column=col, sticky='ew', padx=(0, 8 if col < 3 else 0))
         ttk.Label(card, text=name.upper(), style='Muted.TLabel').pack(side='left')
         ttk.Label(card, textvariable=variable, style='Section.TLabel').pack(side='right')
 
     body = ttk.Panedwindow(root, orient='horizontal')
-    left = ttk.Frame(body, style='Rounded.TFrame', padding=16)
-    right = ttk.Frame(body, style='Rounded.TFrame', padding=16)
+    left = ttk.Frame(body, style='Rounded.TFrame', padding=12)
+    right = ttk.Frame(body, style='Rounded.TFrame', padding=12)
     body.add(left, weight=3)
     body.add(right, weight=2)
     library = ttk.Frame(left, style='Card.TFrame')
@@ -181,8 +176,8 @@ def build(app):
     app.gallery = PhotoGallery(app.library_tabs, on_select=app.select_gallery_photo,
                                on_toggle=app.toggle_chosen, on_open=app.open_gallery_photo)
     table_frame = ttk.Frame(app.library_tabs, style='Card.TFrame')
-    app.library_tabs.add(app.gallery, text='  Photos  ')
-    app.library_tabs.add(table_frame, text='  Details list  ')
+    app.library_tabs.add(app.gallery, text='Photos')
+    app.library_tabs.add(table_frame, text='Details list')
     app.table = ttk.Treeview(table_frame, columns=('decision', 'score', 'pin', 'style'), selectmode='browse', height=6)
     for col, label, width in (('#0', 'PHOTO', 180), ('decision', 'DECISION', 125), ('score', 'KEEP SCORE', 85), ('pin', 'PROTECTED', 85), ('style', 'STYLE', 85)):
         app.table.heading(col, text=label)
@@ -246,6 +241,7 @@ def build(app):
     app.bar.pack(fill='x', pady=(8, 6))
     ttk.Label(footer, text='Automatic recovery is on  ·  Originals stay in place until you confirm cleanup', style='Card.TLabel', foreground='#837b91', font=('Segoe UI', 9)).pack(anchor='w')
     body.pack(fill='both', expand=True, padx=20)
+    app.tour_targets = (setup, toolbar, left, app.action_buttons['finish'])
     compact = False
     resize_timer = None
     dimensions = None
@@ -258,19 +254,19 @@ def build(app):
         if small != compact:
             compact = small
             if small:
-                workflow.pack_forget()
                 metrics.pack_forget()
                 quick_filters.pack_forget()
-                header.configure(padding=(18,8))
-                setup.configure(padding=(18,8))
+                header.configure(padding=(18,6))
+                setup.configure(padding=(18,6))
+                setup.pack_configure(pady=(6, 0))
                 toolbar.configure(padding=(20,6))
                 footer.configure(padding=(18,6))
             else:
-                workflow.pack(fill='x', before=setup)
                 metrics.pack(fill='x', padx=20, pady=(0, 10), before=body)
                 quick_filters.pack(fill='x', pady=(0,8), before=gallery_summary_label)
-                header.configure(padding=(24,16))
-                setup.configure(padding=(18,14))
+                header.configure(padding=(20,9))
+                setup.configure(padding=(16,10))
+                setup.pack_configure(pady=(14, 0))
                 toolbar.configure(padding=(20,12))
                 footer.configure(padding=(18,12))
         if resize_timer:
@@ -282,3 +278,15 @@ def build(app):
                 app.preview()
         resize_timer = root.after(180, redraw)
     root.bind('<Configure>', resize, add='+')
+    preview_timer = None
+    def preview_resized(_):
+        nonlocal preview_timer
+        if preview_timer:
+            root.after_cancel(preview_timer)
+        def refit():
+            nonlocal preview_timer
+            preview_timer = None
+            if app.project and app.current() and not app.cleaning:
+                app.preview()
+        preview_timer = root.after(90, refit)
+    app.preview_label.bind('<Configure>', preview_resized, add='+')

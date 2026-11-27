@@ -15,8 +15,11 @@ from .sessions import SessionStore
 
 
 class DesktopApp:
-    def __init__(self, root, session_store=None):
+    def __init__(self, root, session_store=None, preferences=None):
         self.root = root
+        from .welcome import Preferences
+        self.user_preferences = preferences or Preferences()
+        self.appearance = tk.StringVar(master=root, value=self.user_preferences.theme())
         self.session_store = session_store or SessionStore()
         self.project = None
         self.project_file = None
@@ -28,13 +31,18 @@ class DesktopApp:
         self.busy = False
         self.session = None
         self.session_outcome = None
+        self._table_records = {}
+        from .previews import PreviewLoader
+        self.preview_loader = PreviewLoader(root)
+        self._preview_requested = self._preview_displayed = None
+        root.bind('<Destroy>', lambda event: self.preview_loader.close() if event.widget == root else None, add='+')
         self.analysis_stage = ''
         self.stage_started = time.monotonic()
         self.close_requested = False
         self.cleaning = False
         self.cleanup_stop = threading.Event()
         self.cleanup_events = queue.Queue()
-        root.title('Context Aware IQA — Photo Review')
+        root.title('Context Aware IQA')
         root.geometry('1400x960')
         root.protocol('WM_DELETE_WINDOW', self.close)
         self.source = tk.StringVar()
@@ -49,23 +57,13 @@ class DesktopApp:
         self.selection_hint = tk.StringVar(value='Blank = all suitable photos')
         self.workflow = tk.StringVar(value='Choose folder  →  Analyze  →  Review & clean up  →  Finish & save')
         self.status = tk.StringVar(value='Select a folder. Leave the count blank to keep all suitable photos. Cleanup requires your confirmation.')
-        menu = tk.Menu(root)
-        self.project_menu = tk.Menu(menu, tearoff=False)
-        self.project_menu.add_command(label='Open saved project…', command=self.open)
-        self.project_menu.add_command(label='Recover unfinished session…', command=self.recover)
-        self.project_menu.add_separator()
-        self.project_menu.add_command(label='Copy selection…', command=self.export)
-        self.project_menu.add_command(label='Finish & save…', command=self.finish)
-        self.project_menu.add_command(label='Removal suggestions…', command=self.cleanup)
-        self.project_menu.add_separator()
-        self.project_menu.add_command(label='Exit', command=self.close)
-        menu.add_cascade(label='Project', menu=self.project_menu)
-        help_menu = tk.Menu(menu, tearoff=False)
-        help_menu.add_command(label='Quick start introduction…', command=self.introduction)
-        menu.add_cascade(label='Help', menu=help_menu)
-        root.configure(menu=menu)
+        from .menus import build_menus
+        build_menus(self)
         from .interface import build
         build(self)
+        from .appearance import apply, watch_windows
+        apply(self, self.appearance.get())
+        watch_windows(self)
         self.target.trace_add('write', self.schedule_preferences)
         self.style.trace_add('write', self.schedule_preferences)
         self.one_per_burst.trace_add('write', self.schedule_preferences)
@@ -77,7 +75,7 @@ class DesktopApp:
         if getattr(self, 'tour', None) and self.tour.window.winfo_exists():
             self.tour.window.lift()
         else:
-            self.tour = Introduction(self.root)
+            self.tour = Introduction(self.root, self.user_preferences, self.tour_targets)
 
     def idle(self):
         if self.busy:
@@ -113,6 +111,9 @@ class DesktopApp:
             self.preferences_valid = True
             self.selection_hint.set('Blank = all suitable photos · selection updates automatically')
             self.table.delete(*self.table.get_children())
+            self._table_records.clear()
+            self.preview_loader.cancel()
+            self._preview_requested = self._preview_displayed = None
             self.preview_label.configure(image='', text='Select a photo to inspect it.')
             self.details.set('Your work is saved to automatic recovery. Choose Finish project when ready.')
             self.refresh()
@@ -235,6 +236,7 @@ class DesktopApp:
         if not self.project or self.busy:
             return False
         old = self.project.target, self.project.style, self.project.one_per_burst
+        was_valid = self.preferences_valid
         try:
             self.project.target = self.settings()
             self.project.style = self.style.get()
@@ -244,7 +246,9 @@ class DesktopApp:
             self.selection_hint.set('Blank = all suitable photos · selection updates automatically')
             if old != (self.project.target, self.project.style, self.project.one_per_burst):
                 self.checkpoint()
-            self.refresh()
+                self.refresh()
+            elif not was_valid:
+                self.refresh()
             return True
         except Exception as exc:
             self.project.target, self.project.style, self.project.one_per_burst = old
@@ -272,10 +276,8 @@ class DesktopApp:
         self.recursive_control.configure(state='disabled' if self.busy else 'normal')
         for control in (self.shot_control, self.motion_control, self.style_control):
             control.configure(state='disabled' if self.busy else 'readonly')
-        for index in (0, 1):
-            self.project_menu.entryconfigure(index, state='disabled' if self.busy else 'normal')
-        for index in (3, 4):
-            self.project_menu.entryconfigure(index, state='normal' if ready else 'disabled')
+        from .menus import sync_menus
+        sync_menus(self, ready)
         photo = self.current() if self.project else None
         for button in self.photo_buttons:
             button.configure(state='normal' if ready and photo and not photo.recycled else 'disabled')
@@ -292,7 +294,7 @@ class DesktopApp:
             stage = 'Project saved — continue reviewing or start another folder'
         else:
             stage = 'Review & clean up — then Finish project'
-        self.workflow.set(f'1. Choose folder  →  2. Analyze  →  3. Choose your photos  →  4. Review & finish     |     {stage}')
+        self.workflow.set(stage)
 
     def analyze(self):
         if not self.idle() or not self.project:
@@ -437,6 +439,8 @@ class DesktopApp:
         for name, value in [('Photos', sum(not p.recycled for p in self.project.photos)), ('Keep', sum(p.decision == 'Keep' for p in self.project.photos)), ('Review', sum(p.decision in ('Review', 'Error', 'Unsupported') for p in self.project.photos)), ('Selected', len(chosen))]:
             self.metrics[name].set(str(value))
         previous = self.table.selection()
+        existing = self.table.get_children()
+        existing_set = set(existing)
         desired = []
         keeps = sum(p.decision == 'Keep' for p in self.project.photos)
         reviews = sum(p.decision in ('Review', 'Error', 'Unsupported') for p in self.project.photos)
@@ -462,15 +466,20 @@ class DesktopApp:
                 decision = 'Marked for removal' if photo.decision == 'Excluded' else photo.decision
                 score = f'{photo.score:.1f}' if photo.status in ('Keep', 'Review') else '—'
                 values = (decision, score, 'Yes' if photo.must_include else 'No', photo.style_label)
-                if self.table.exists(iid):
-                    self.table.item(iid, text=photo.relative, values=values, tags=(photo.decision,))
+                record = (photo.relative, values, photo.decision)
+                if iid in existing_set:
+                    if self._table_records.get(iid) != record:
+                        self.table.item(iid, text=photo.relative, values=values, tags=(photo.decision,))
                 else:
                     self.table.insert('', 'end', iid=iid, text=photo.relative, values=values, tags=(photo.decision,))
+                self._table_records[iid] = record
         desired_set = set(desired)
-        for iid in self.table.get_children():
-            if iid not in desired_set:
-                self.table.delete(iid)
-        if tuple(desired) != self.table.get_children():
+        removed = existing_set - desired_set
+        if removed:
+            self.table.delete(*removed)
+            for iid in removed:
+                self._table_records.pop(iid, None)
+        if tuple(desired) != tuple(iid for iid in existing if iid in desired_set):
             self.table.set_children('', *desired)
         if previous and self.table.exists(previous[0]) and self.table.selection() != previous:
             self.table.selection_set(previous[0])
@@ -539,11 +548,16 @@ class DesktopApp:
         photo = self.current()
         self.sync_controls()
         if not photo:
+            self.preview_loader.cancel()
+            self._preview_requested = self._preview_displayed = None
+            self.preview_label.configure(image='', text='Select a photo to inspect it.')
             return
         if hasattr(self, 'gallery'):
             self.gallery.selected = self.table.selection()[0]
             self.gallery.render()
         if photo.recycled:
+            self.preview_loader.cancel()
+            self._preview_requested = self._preview_displayed = None
             self.preview_label.configure(image='', text='Moved to the Recycle Bin. Restore it there, then reopen this project.')
             self.details.set(photo.relative)
             return
@@ -563,12 +577,28 @@ class DesktopApp:
             measurements += '\nRecommendation uses Keep status, overall quality and weakest assessable subject detail. Facial expressions are not rated.'
         self.details.set(f'{photo.relative}\nAI: {photo.status} · Keep score: {score}\nDecision: {photo.decision}\nStyle: {photo.style_label} ({style_source})' + measurements + '\n' + '\n'.join(photo.reasons))
         try:
-            with Image.open(self.project.path_for(photo)) as original:
-                image = ImageOps.exif_transpose(original).convert('RGB')
-                image.thumbnail((max(32, self.preview_label.winfo_width() - 16), max(32, self.preview_label.winfo_height() - 16)))
-            self.preview_image = ImageTk.PhotoImage(image)
-            self.preview_label.configure(image=self.preview_image, text='')
+            path = self.project.path_for(photo)
+            size = (max(32, self.preview_label.winfo_width()-16), max(32, self.preview_label.winfo_height()-16))
+            key = (str(path), photo.size, photo.modified, size)
+            if key == self._preview_displayed and key == self._preview_requested:
+                return
+            if key != self._preview_requested:
+                self._preview_displayed = None
+                self.preview_label.configure(image='', text='Loading preview…')
+            self._preview_requested = key
+            def loaded(result_key, image, error):
+                if result_key != self._preview_requested or self.cleaning:
+                    return
+                if error:
+                    self.preview_label.configure(image='', text=f'Preview unavailable: {error}')
+                else:
+                    self.preview_image = ImageTk.PhotoImage(image, master=self.root)
+                    self._preview_displayed = result_key
+                    self.preview_label.configure(image=self.preview_image, text='')
+            self.preview_loader.request(key, path, size, loaded)
         except Exception as exc:
+            self.preview_loader.cancel()
+            self._preview_requested = self._preview_displayed = None
             self.preview_label.configure(image='', text=f'Preview unavailable: {exc}')
 
     def decide(self, decision):
@@ -623,8 +653,7 @@ class DesktopApp:
         if not photo:
             return
         try:
-            with Image.open(self.project.path_for(photo)) as original:
-                image = ImageOps.exif_transpose(original).convert('RGB')
+            path = self.project.path_for(photo)
             window = tk.Toplevel(parent or self.root)
             if parent:
                 window.transient(parent)
@@ -642,9 +671,24 @@ class DesktopApp:
             horizontal.pack(side='bottom', fill='x')
             vertical.pack(side='right', fill='y')
             canvas.pack(fill='both', expand=True)
-            canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set, scrollregion=(0, 0, image.width, image.height))
-            canvas.photo = ImageTk.PhotoImage(image)
-            canvas.create_image(0, 0, anchor='nw', image=canvas.photo)
+            canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
+            canvas.create_text(24, 24, anchor='nw', text='Loading full-resolution photo…',
+                               fill='#91879f', font=('Segoe UI', 10))
+            from .previews import PreviewLoader
+            loader = PreviewLoader(window, max_pixels=0)
+            window.preview_loader = loader
+            window.bind('<Destroy>', lambda event: loader.close() if event.widget == window else None, add='+')
+            def loaded(key, image, error):
+                if not canvas.winfo_exists():
+                    return
+                canvas.delete('all')
+                if error:
+                    canvas.create_text(24, 24, anchor='nw', text=f'Preview unavailable: {error}', fill='#91879f')
+                else:
+                    canvas.configure(scrollregion=(0, 0, image.width, image.height))
+                    canvas.photo = ImageTk.PhotoImage(image, master=window)
+                    canvas.create_image(0, 0, anchor='nw', image=canvas.photo)
+            loader.request((str(path), photo.size, photo.modified), path, None, loaded)
             return window
         except Exception as exc:
             messagebox.showerror('Inspect photo', str(exc))
